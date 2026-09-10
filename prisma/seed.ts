@@ -682,6 +682,7 @@ async function main() {
 
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
+  await prisma.coupon.deleteMany();
   await prisma.wishlistItem.deleteMany();
   await prisma.wishlist.deleteMany();
   await prisma.cartItem.deleteMany();
@@ -852,6 +853,19 @@ async function main() {
     quantity: 1,
     placedAt: new Date(now - 24 * 60 * 60 * 1000),
     status: "CANCELLED",
+  });
+
+  // Demo coupons — a small fixed set covering every required case directly
+  // (percentage, fixed amount, minimum order, expired, inactive) rather
+  // than an admin UI to create them, per the plan's explicit scope.
+  await prisma.coupon.createMany({
+    data: [
+      { code: "SAVE10", type: "PERCENT", value: 10 },
+      { code: "SAVE20", type: "PERCENT", value: 20, minSubtotalCents: 5000 },
+      { code: "FLAT15", type: "FIXED", value: 1500, minSubtotalCents: 3000 },
+      { code: "EXPIRED10", type: "PERCENT", value: 10, expiresAt: new Date(now - 30 * 24 * 60 * 60 * 1000) },
+      { code: "INACTIVE5", type: "FIXED", value: 500, isActive: false },
+    ],
   });
 
   const productCount = await prisma.product.count();

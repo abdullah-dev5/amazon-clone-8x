@@ -2,10 +2,13 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCartView } from "@/lib/cart";
-import { getCheckoutState, getDeliveryOption, TAX_RATE } from "@/lib/checkout";
+import { getCheckoutState, getDeliveryOption } from "@/lib/checkout";
+import { validateCouponCode } from "@/lib/coupon";
+import { computeOrderTotals } from "@/lib/pricing";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
 import { CheckoutSteps } from "@/components/CheckoutSteps";
+import { CouponForm } from "@/components/CouponForm";
 import { PlaceOrderButton } from "@/components/PlaceOrderButton";
 
 export const dynamic = "force-dynamic";
@@ -29,10 +32,29 @@ export default async function CheckoutReviewPage() {
     redirect("/cart");
   }
 
+  // Re-validate on every render — the cart or the coupon itself (expiry,
+  // being disabled) may have changed since it was applied. A stale/invalid
+  // code sitting in the checkout cookie never affects what's charged; it
+  // just stops counting toward the total show here, with a note explaining
+  // why. place-order performs this exact same re-validation independently
+  // at commit time, so pricing is correct regardless of what this render
+  // decided.
+  const couponValidation = state.couponCode
+    ? await validateCouponCode(db, state.couponCode, cart.subtotalCents)
+    : null;
+  const activeCoupon = couponValidation?.valid ? couponValidation.coupon : null;
+  const invalidNotice =
+    state.couponCode && couponValidation && !couponValidation.valid
+      ? `Your coupon code is no longer valid: ${couponValidation.reason}`
+      : null;
+
   const subtotalCents = cart.subtotalCents;
   const shippingCents = delivery.priceCents;
-  const taxCents = Math.round(subtotalCents * TAX_RATE);
-  const totalCents = subtotalCents + shippingCents + taxCents;
+  const { discountCents, taxCents, totalCents } = computeOrderTotals({
+    subtotalCents,
+    shippingCents,
+    coupon: activeCoupon,
+  });
 
   return (
     <div className="mx-auto max-w-4xl px-3 py-6">
@@ -65,6 +87,11 @@ export default async function CheckoutReviewPage() {
             </p>
           </div>
 
+          <div className="rounded-lg border border-gray-300 p-4">
+            <h2 className="font-semibold text-gray-900 mb-2">Promo code</h2>
+            <CouponForm appliedCode={activeCoupon?.code ?? null} invalidNotice={invalidNotice} />
+          </div>
+
           <div className="rounded-lg border border-gray-300 divide-y">
             {cart.lines.map((line) => (
               <div key={line.variantId} className="p-4 flex gap-4">
@@ -92,6 +119,12 @@ export default async function CheckoutReviewPage() {
             <span className="text-gray-600">Items subtotal:</span>
             <span>{formatPrice(subtotalCents)}</span>
           </div>
+          {discountCents > 0 && (
+            <div className="flex justify-between text-green-700">
+              <span>Coupon ({activeCoupon!.code}):</span>
+              <span>-{formatPrice(discountCents)}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span className="text-gray-600">Shipping:</span>
             <span>{shippingCents === 0 ? "FREE" : formatPrice(shippingCents)}</span>

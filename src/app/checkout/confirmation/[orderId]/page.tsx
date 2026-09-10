@@ -38,6 +38,12 @@ export default async function OrderConfirmationPage({
           <span className="text-gray-600">Order total</span>
           <span className="font-semibold">{formatPrice(order.totalCents)}</span>
         </div>
+        {order.discountCents > 0 && (
+          <div className="flex justify-between text-sm text-green-700">
+            <span>Coupon {order.couponCode}</span>
+            <span>-{formatPrice(order.discountCents)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Delivery</span>
           <span>{order.deliveryOption}</span>

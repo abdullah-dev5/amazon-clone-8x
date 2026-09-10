@@ -159,6 +159,27 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum CouponType {
+  PERCENT
+  FIXED
+}
+
+// Deliberately no redemption-count/per-user-usage tracking — not required
+// by any stated requirement, and would be a table added merely because
+// it's theoretically possible. Validity (active/expiry/minimum) is
+// re-checked fresh against the live cart at every use, including inside
+// the same transaction that creates the order — see lib/coupon.ts.
+model Coupon {
+  id               String     @id @default(cuid())
+  code             String     @unique
+  type             CouponType
+  value            Int
+  minSubtotalCents Int?
+  expiresAt        DateTime?
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+}
+
 model Order {
   id             String      @id @default(cuid())
   userId         String
@@ -183,6 +204,14 @@ model Order {
   shipToCountry  String
 
   deliveryOption String
+
+  // Coupon applied at purchase time, if any — a snapshot for order-history
+  // legibility (so a past order's total is self-explanatory), not a live
+  // reference back to the Coupon row (which could later change or be
+  // deleted). Nullable/defaulted so existing orders remain valid as-is.
+  couponCode     String?
+  discountCents  Int         @default(0)
+
   subtotalCents  Int
   shippingCents  Int
   taxCents       Int

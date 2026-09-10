@@ -16,8 +16,6 @@ export const DELIVERY_OPTIONS: DeliveryOption[] = [
   { id: "same-day", label: "Same-Day Delivery", etaLabel: "Today, by 9pm", priceCents: 1999 },
 ];
 
-export const TAX_RATE = 0.08;
-
 export type CheckoutState = {
   // Stable for the life of one checkout session; used as the Order's
   // idempotency key so a double-click or client retry of place-order can't
@@ -29,6 +27,10 @@ export type CheckoutState = {
   deliveryOptionId?: string;
   paymentConfirmed?: boolean;
   paymentLast4?: string;
+  // The applied coupon code, if any — re-validated fresh against the live
+  // cart on every read (review display, place-order), never trusted as a
+  // cached discount amount. See lib/coupon.ts and lib/pricing.ts.
+  couponCode?: string;
 };
 
 export async function getCheckoutState(): Promise<CheckoutState> {
@@ -58,6 +60,18 @@ export async function setCheckoutState(patch: Partial<CheckoutState>) {
 export async function clearCheckoutState() {
   const store = await cookies();
   store.delete(CHECKOUT_COOKIE);
+}
+
+export async function clearCouponFromCheckoutState() {
+  const current = await getCheckoutState();
+  const { couponCode: _removed, ...rest } = current;
+  const store = await cookies();
+  store.set(CHECKOUT_COOKIE, JSON.stringify(rest), {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 2,
+  });
 }
 
 export function getDeliveryOption(id: string | undefined) {

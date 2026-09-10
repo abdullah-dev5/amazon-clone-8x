@@ -3,7 +3,9 @@ import { Prisma } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getCartView } from "@/lib/cart";
-import { clearCheckoutState, getCheckoutState, getDeliveryOption, TAX_RATE } from "@/lib/checkout";
+import { clearCheckoutState, getCheckoutState, getDeliveryOption } from "@/lib/checkout";
+import { validateCouponCode } from "@/lib/coupon";
+import { computeOrderTotals } from "@/lib/pricing";
 
 class InsufficientStockError extends Error {
   constructor(productTitle: string, variantName: string) {
@@ -38,20 +40,34 @@ export async function POST() {
 
   const cart = await getCartView(user.id);
   if (cart.lines.length === 0) {
+    // An empty cart here isn't necessarily "nothing to buy" — a
+    // concurrent request for this exact checkout session may have already
+    // committed its transaction (which clears the cart) in the gap
+    // between the idempotency check above and this read. Check once more
+    // before reporting an error a customer would see despite their order
+    // having actually gone through.
+    const raceWinner = await db.order.findUnique({ where: { idempotencyKey: state.checkoutId } });
+    if (raceWinner) {
+      return NextResponse.json({ orderId: raceWinner.id });
+    }
     return NextResponse.json({ error: "Your cart is empty." }, { status: 400 });
   }
 
-  const subtotalCents = cart.subtotalCents;
-  const shippingCents = delivery.priceCents;
-  const taxCents = Math.round(subtotalCents * TAX_RATE);
-  const totalCents = subtotalCents + shippingCents + taxCents;
-
   try {
     const orderId = await db.$transaction(async (tx) => {
-      // Re-validate and decrement stock against the live row inside the
+      // Re-validate stock AND price against the live row inside the
       // transaction — the cart view read above can be stale by the time
-      // this commits, and this is the operation that actually commits
-      // inventory, not the earlier add-to-cart.
+      // this commits. This is the operation that actually commits
+      // inventory and money, not the earlier add-to-cart.
+      let subtotalCents = 0;
+      const itemsData: {
+        variantId: string;
+        productTitle: string;
+        variantName: string;
+        imageUrl: string | null;
+        unitPriceCents: number;
+        quantity: number;
+      }[] = [];
       for (const line of cart.lines) {
         const variant = await tx.productVariant.findUniqueOrThrow({ where: { id: line.variantId } });
         if (variant.stock < line.quantity) {
@@ -61,7 +77,32 @@ export async function POST() {
           where: { id: line.variantId },
           data: { stock: { decrement: line.quantity } },
         });
+        subtotalCents += variant.priceCents * line.quantity;
+        itemsData.push({
+          variantId: line.variantId,
+          productTitle: line.productTitle,
+          variantName: line.variantName,
+          imageUrl: line.imageUrl,
+          unitPriceCents: variant.priceCents,
+          quantity: line.quantity,
+        });
       }
+
+      // Same re-validation as the review page's preview, run again here
+      // against the live subtotal — never trust the earlier apply-coupon
+      // call's result. An invalid/expired/no-longer-qualifying coupon
+      // simply contributes no discount rather than blocking the order.
+      const couponResult = state.couponCode
+        ? await validateCouponCode(tx, state.couponCode, subtotalCents)
+        : null;
+      const coupon = couponResult?.valid ? couponResult.coupon : null;
+
+      const shippingCents = delivery.priceCents;
+      const { discountCents, taxCents, totalCents } = computeOrderTotals({
+        subtotalCents,
+        shippingCents,
+        coupon,
+      });
 
       const order = await tx.order.create({
         data: {
@@ -76,20 +117,13 @@ export async function POST() {
           shipToPostalCode: address.postalCode,
           shipToCountry: address.country,
           deliveryOption: `${delivery.label} (${delivery.etaLabel})`,
+          couponCode: coupon?.code ?? null,
+          discountCents,
           subtotalCents,
           shippingCents,
           taxCents,
           totalCents,
-          items: {
-            create: cart.lines.map((line) => ({
-              variantId: line.variantId,
-              productTitle: line.productTitle,
-              variantName: line.variantName,
-              imageUrl: line.imageUrl,
-              unitPriceCents: line.unitPriceCents,
-              quantity: line.quantity,
-            })),
-          },
+          items: { create: itemsData },
         },
       });
 

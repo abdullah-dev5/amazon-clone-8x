@@ -88,6 +88,12 @@ export default async function OrderDetailPage({
           <span className="text-gray-600">Subtotal:</span>
           <span>{formatPrice(order.subtotalCents)}</span>
         </div>
+        {order.discountCents > 0 && (
+          <div className="flex justify-between text-green-700">
+            <span>Coupon {order.couponCode}:</span>
+            <span>-{formatPrice(order.discountCents)}</span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span className="text-gray-600">Shipping:</span>
           <span>{order.shippingCents === 0 ? "FREE" : formatPrice(order.shippingCents)}</span>
