@@ -40,6 +40,16 @@ export function SearchBar() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // The search form does a real (non-intercepted) GET submit so it keeps
+  // working without JS — which means a full page load on every search,
+  // remounting this component and resetting its state. Restore the box's
+  // contents from the URL so a completed search doesn't look like it never
+  // happened.
+  useEffect(() => {
+    const k = new URLSearchParams(window.location.search).get("k");
+    if (k) setQuery(k);
+  }, []);
+
   function openDropdown() {
     setRecent(readRecentSearches());
     setOpen(true);
@@ -92,7 +102,7 @@ export function SearchBar() {
           placeholder="Search amazonw"
           aria-label="Search products"
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-l-md px-3 py-2 text-gray-900 focus:outline-none"
+          className="min-w-0 flex-1 rounded-l-md bg-white px-3 py-2 text-gray-900 focus:outline-none"
         />
         <button
           type="submit"
