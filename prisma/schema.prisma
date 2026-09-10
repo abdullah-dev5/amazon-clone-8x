@@ -104,8 +104,15 @@ model Review {
   authorName String
   rating    Int
   title     String?
-  body      String
+  body      String?
   createdAt DateTime @default(now())
+
+  // Seeded reviews have no real user (userId null) and are exempt from this —
+  // SQL treats each NULL as distinct, so they never collide with each other
+  // or with a real customer's review. Only blocks a signed-in user from
+  // reviewing the same product twice; enforced again at the app layer for a
+  // clean error before hitting the constraint (see POST /api/reviews).
+  @@unique([productId, userId])
 }
 
 model Cart {
@@ -146,14 +153,15 @@ model WishlistItem {
   @@unique([wishlistId, variantId])
 }
 
-// Only PLACED and CANCELLED are ever actually written by app code today —
-// SHIPPED/DELIVERED exist for a future real fulfillment action but aren't
-// wired to one yet. The customer-facing progress shown for a PLACED order
-// (Processing/Shipped/Delivered) is derived at render time from elapsed
-// time since placedAt (see lib/order-status.ts) — deliberately never
-// itself written here, since there's no background job to drive it.
+// A real, persisted fulfillment lifecycle: PLACED -> PROCESSING -> SHIPPED
+// -> DELIVERED, with CANCELLED reachable from PLACED. There's no
+// warehouse/carrier integration or background job driving this forward —
+// see lib/order-status.ts's ADVANCE_TRANSITIONS for the small,
+// ownership-gated, server-validated mechanism used to move an order
+// through these states for demonstration/testing.
 enum OrderStatus {
   PLACED
+  PROCESSING
   SHIPPED
   DELIVERED
   CANCELLED

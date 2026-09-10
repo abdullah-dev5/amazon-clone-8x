@@ -4,8 +4,10 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
-import { deriveDisplayStatus } from "@/lib/order-status";
+import { ADVANCE_TRANSITIONS } from "@/lib/order-status";
 import { OrderStatusTracker } from "@/components/OrderStatusTracker";
+import { AdvanceOrderStatusButton } from "@/components/AdvanceOrderStatusButton";
+import { BuyAgainButton } from "@/components/BuyAgainButton";
 
 export const dynamic = "force-dynamic";
 
@@ -24,16 +26,17 @@ export default async function OrderDetailPage({
   });
   if (!order) notFound();
 
-  const displayStatus = deriveDisplayStatus(order);
-
   return (
     <div className="mx-auto max-w-3xl px-3 py-6">
       <Link href="/account/orders" className="text-sm text-blue-700 hover:underline">
         &larr; Back to your orders
       </Link>
-      <h1 className="text-xl font-bold text-gray-900 mt-2 mb-1">
-        Order #{order.id.slice(-8).toUpperCase()}
-      </h1>
+      <div className="mt-2 mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-bold text-gray-900">
+          Order #{order.id.slice(-8).toUpperCase()}
+        </h1>
+        <BuyAgainButton orderId={order.id} />
+      </div>
       <p className="text-sm text-gray-600 mb-4">
         Placed on{" "}
         {order.placedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
@@ -41,8 +44,13 @@ export default async function OrderDetailPage({
 
       <div className="rounded-lg border border-gray-200 p-4 mb-4">
         <div className="mb-4">
-          <OrderStatusTracker status={displayStatus} />
+          <OrderStatusTracker status={order.status} />
         </div>
+        {process.env.NODE_ENV !== "production" && ADVANCE_TRANSITIONS[order.status] && (
+          <div className="mb-4">
+            <AdvanceOrderStatusButton orderId={order.id} nextStatus={ADVANCE_TRANSITIONS[order.status]!} />
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <h2 className="font-semibold text-gray-900 mb-1">Shipping address</h2>

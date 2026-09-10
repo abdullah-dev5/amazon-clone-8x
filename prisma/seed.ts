@@ -780,17 +780,18 @@ async function main() {
   await prisma.cart.create({ data: { userId: demoUser.id } });
   await prisma.wishlist.create({ data: { userId: demoUser.id } });
 
-  // A few backdated/cancelled demo orders so order-status tracking (which
-  // derives PROCESSING/SHIPPED/DELIVERED from elapsed time for a live
-  // order — see lib/order-status.ts) has something to show beyond
-  // "Placed" without needing to wait real time. A fresh order placed via
-  // checkout right now already demonstrates PLACED/PROCESSING on its own.
+  // A few demo orders with real, persisted statuses so order-status
+  // tracking (see lib/order-status.ts) has something to show across the
+  // whole lifecycle without needing to wait real time or manually advance
+  // anything. A fresh order placed via checkout right now already
+  // demonstrates PLACED on its own, and the dev-only "advance" tool on the
+  // order detail page can walk it forward from there.
   async function seedDemoOrder(opts: {
     idempotencyKey: string;
     productSlug: string;
     quantity: number;
     placedAt: Date;
-    status?: "PLACED" | "CANCELLED";
+    status?: "PLACED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
   }) {
     const variant = await prisma.productVariant.findFirstOrThrow({
       where: { product: { slug: opts.productSlug }, isDefault: true },
@@ -839,13 +840,22 @@ async function main() {
     idempotencyKey: "seed-order-delivered",
     productSlug: "audiora-noise-cancelling-over-ear-headphones",
     quantity: 1,
-    placedAt: new Date(now - 3 * 24 * 60 * 60 * 1000), // 3 days ago -> Delivered
+    placedAt: new Date(now - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    status: "DELIVERED",
   });
   await seedDemoOrder({
     idempotencyKey: "seed-order-shipped",
     productSlug: "brewline-stainless-steel-french-press-34oz",
     quantity: 1,
-    placedAt: new Date(now - 10 * 60 * 60 * 1000), // 10 hours ago -> Shipped
+    placedAt: new Date(now - 10 * 60 * 60 * 1000), // 10 hours ago
+    status: "SHIPPED",
+  });
+  await seedDemoOrder({
+    idempotencyKey: "seed-order-processing",
+    productSlug: "sweepix-digital-air-fryer-6-quart",
+    quantity: 1,
+    placedAt: new Date(now - 30 * 60 * 1000), // 30 minutes ago
+    status: "PROCESSING",
   });
   await seedDemoOrder({
     idempotencyKey: "seed-order-cancelled",

@@ -5,8 +5,9 @@ import { Package } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
-import { deriveDisplayStatus, displayStatusBadgeClasses, displayStatusLabel } from "@/lib/order-status";
+import { displayStatusBadgeClasses, displayStatusLabel } from "@/lib/order-status";
 import { EmptyState } from "@/components/EmptyState";
+import { BuyAgainButton } from "@/components/BuyAgainButton";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export default async function OrdersPage() {
       ) : (
         <div className="space-y-4">
           {orders.map((order) => {
-            const displayStatus = deriveDisplayStatus(order);
+            const displayStatus = order.status;
             return (
             <div key={order.id} className="rounded-lg border border-gray-200">
               <div className="flex flex-wrap justify-between gap-3 bg-gray-50 px-4 py-3 text-sm border-b border-gray-200">
@@ -67,10 +68,11 @@ export default async function OrdersPage() {
                     )}
                   </div>
                 ))}
-                <div className="ml-auto self-center">
+                <div className="ml-auto self-center flex flex-col items-end gap-2">
                   <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${displayStatusBadgeClasses(displayStatus)}`}>
                     {displayStatusLabel(displayStatus)}
                   </span>
+                  <BuyAgainButton orderId={order.id} />
                 </div>
               </div>
             </div>

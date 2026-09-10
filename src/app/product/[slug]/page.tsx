@@ -34,15 +34,19 @@ export default async function ProductPage({
   const images: string[] = JSON.parse(product.images);
 
   let wishlistedVariantIds: string[] = [];
+  let myReview: { id: string; rating: number; title: string | null; body: string | null } | null = null;
   if (user) {
-    const wishlist = await db.wishlist.findUnique({
-      where: { userId: user.id },
-      include: { items: true },
-    });
+    const [wishlist, existingReview] = await Promise.all([
+      db.wishlist.findUnique({ where: { userId: user.id }, include: { items: true } }),
+      db.review.findUnique({ where: { productId_userId: { productId: product.id, userId: user.id } } }),
+    ]);
     const variantIds = new Set(product.variants.map((v) => v.id));
     wishlistedVariantIds = (wishlist?.items ?? [])
       .filter((i) => variantIds.has(i.variantId))
       .map((i) => i.variantId);
+    myReview = existingReview
+      ? { id: existingReview.id, rating: existingReview.rating, title: existingReview.title, body: existingReview.body }
+      : null;
   }
 
   return (
@@ -71,7 +75,11 @@ export default async function ProductPage({
         }}
       />
       <ReviewsSection
+        productId={product.id}
+        productSlug={product.slug}
         rating={product.rating}
+        signedIn={!!user}
+        myReview={myReview}
         reviews={product.reviews.map((r) => ({
           id: r.id,
           authorName: r.authorName,

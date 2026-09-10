@@ -1,20 +1,29 @@
 import { StarRating } from "@/components/StarRating";
+import { ReviewForm, type MyReview } from "@/components/ReviewForm";
 
 export type ReviewData = {
   id: string;
   authorName: string;
   rating: number;
   title: string | null;
-  body: string;
+  body: string | null;
   createdAt: string;
 };
 
 export function ReviewsSection({
+  productId,
+  productSlug,
   rating,
   reviews,
+  signedIn,
+  myReview,
 }: {
+  productId: string;
+  productSlug: string;
   rating: number;
   reviews: ReviewData[];
+  signedIn: boolean;
+  myReview: MyReview | null;
 }) {
   const distribution = [5, 4, 3, 2, 1].map((star) => {
     const count = reviews.filter((r) => r.rating === star).length;
@@ -44,6 +53,12 @@ export function ReviewsSection({
       </div>
 
       <div className="space-y-6">
+        <ReviewForm
+          productId={productId}
+          productSlug={productSlug}
+          signedIn={signedIn}
+          initialReview={myReview}
+        />
         {reviews.length === 0 && (
           <p className="text-sm text-gray-600">No reviews yet for this product.</p>
         )}
@@ -57,7 +72,7 @@ export function ReviewsSection({
             </div>
             <StarRating rating={r.rating} />
             {r.title && <p className="mt-1 font-semibold text-sm text-gray-900">{r.title}</p>}
-            <p className="mt-1 text-sm text-gray-700">{r.body}</p>
+            {r.body && <p className="mt-1 text-sm text-gray-700">{r.body}</p>}
           </div>
         ))}
       </div>

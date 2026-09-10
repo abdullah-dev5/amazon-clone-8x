@@ -1,4 +1,4 @@
-import type { DisplayOrderStatus } from "@/lib/order-status";
+import type { OrderStatus as DisplayOrderStatus } from "@prisma/client";
 import { StepIndicator, type Step } from "@/components/StepIndicator";
 
 const STAGES: Step[] = [

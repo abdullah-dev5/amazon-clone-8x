@@ -1,33 +1,14 @@
 import type { OrderStatus } from "@prisma/client";
 
 /**
- * Everything a PLACED order can appear as to the customer. PROCESSING is
- * deliberately not a real column value (see schema.prisma) — there's no
- * background job in this app to drive a status forward, so "time has
- * passed since placedAt" stands in for it, computed fresh on every render
- * from a real DB field (placedAt), not from React state.
+ * The customer-facing order lifecycle, persisted directly on the Order row
+ * (see the OrderStatus enum in schema.prisma) — no longer derived from
+ * elapsed time. There's no warehouse/carrier integration or background job
+ * driving this forward; ADVANCE_TRANSITIONS below is the small,
+ * ownership-gated mechanism used to move an order through these states for
+ * demonstration/testing (see POST /api/account/orders/[orderId]/advance).
  */
-export type DisplayOrderStatus = "PLACED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
-
-const PROCESSING_AFTER_MS = 2 * 60 * 1000; // 2 minutes
-const SHIPPED_AFTER_MS = 2 * 60 * 60 * 1000; // 2 hours
-const DELIVERED_AFTER_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
-
-/**
- * A persisted terminal/explicit status (CANCELLED — or SHIPPED/DELIVERED,
- * if a future fulfillment action ever sets them) always wins over the
- * time-derived guess. Only a still-PLACED order gets its display status
- * derived from elapsed time.
- */
-export function deriveDisplayStatus(order: { status: OrderStatus; placedAt: Date }): DisplayOrderStatus {
-  if (order.status !== "PLACED") return order.status;
-
-  const elapsedMs = Date.now() - order.placedAt.getTime();
-  if (elapsedMs < PROCESSING_AFTER_MS) return "PLACED";
-  if (elapsedMs < SHIPPED_AFTER_MS) return "PROCESSING";
-  if (elapsedMs < DELIVERED_AFTER_MS) return "SHIPPED";
-  return "DELIVERED";
-}
+export type DisplayOrderStatus = OrderStatus;
 
 const LABELS: Record<DisplayOrderStatus, string> = {
   PLACED: "Order placed",
@@ -52,3 +33,13 @@ export function displayStatusLabel(status: DisplayOrderStatus): string {
 export function displayStatusBadgeClasses(status: DisplayOrderStatus): string {
   return BADGE_CLASSES[status];
 }
+
+/**
+ * Valid forward transitions, enforced server-side (see the advance route).
+ * DELIVERED and CANCELLED are terminal — neither maps to a next status.
+ */
+export const ADVANCE_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus>> = {
+  PLACED: "PROCESSING",
+  PROCESSING: "SHIPPED",
+  SHIPPED: "DELIVERED",
+};
