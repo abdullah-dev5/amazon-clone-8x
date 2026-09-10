@@ -58,9 +58,6 @@ prisma/*.db-journal
 /playwright-report/
 /playwright/.cache/
 
-# lockfile kept local-only, not pushed to the remote
-package-lock.json
-
 # internal planning/status docs kept local-only, not pushed to the remote
 /PLAN.md
 /PROGRESS.md
