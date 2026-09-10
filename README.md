@@ -41,7 +41,30 @@ file covers what's needed to run the project.
    ```
    Open [http://localhost:3000](http://localhost:3000).
 
-**Demo account**: `demo@example.com` / `password123`
+## Demo data / test reference
+
+After seeding (`npm run db:seed`), use these to walk through the app:
+
+**Account**: `demo@example.com` / `password123` — has a saved address and
+4 orders, one at each order status (Processing, Shipped, Delivered,
+Cancelled), plus existing reviews and wishlist items.
+
+**Payment** (checkout's payment step is a mock — nothing is actually
+charged; any values satisfying these pass):
+- Card number: `4242 4242 4242 4242` (or any other Luhn-valid number)
+- Expiry: any future `MM/YY`, e.g. `12/29`
+- CVV: any 3–4 digits, e.g. `123`
+
+**Coupons** (checkout's review step):
+
+| Code | Effect |
+|---|---|
+| `SAVE10` | 10% off, no minimum |
+| `SAVE20` | 20% off, $50 minimum subtotal |
+| `FLAT15` | $15 off, $30 minimum subtotal |
+| `EXPIRED10` | Always rejected — expired |
+| `INACTIVE5` | Always rejected — disabled |
+| anything else | Rejected — coupon not found |
 
 ## Scripts
 
