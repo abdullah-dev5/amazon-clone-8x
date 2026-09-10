@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime        @default(now())
+
+  addresses     Address[]
+  paymentMethods PaymentMethod[]
+  cart          Cart?
+  orders        Order[]
+  reviews       Review[]
+  wishlist      Wishlist?
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName   String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String
+  country    String   @default("US")
+  phone      String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  orders     Order[]
+}
+
+model PaymentMethod {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardholderName String
+  brand          String
+  last4          String
+  expMonth       Int
+  expYear        Int
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  name     String
+  imageUrl String?
+  products Product[]
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  title       String
+  description String
+  brand       String?
+  categoryId  String
+  category    Category         @relation(fields: [categoryId], references: [id])
+  images      String
+  rating      Float            @default(0)
+  reviewCount Int              @default(0)
+  createdAt   DateTime         @default(now())
+
+  variants    ProductVariant[]
+  reviews     Review[]
+}
+
+model ProductVariant {
+  id               String   @id @default(cuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name             String
+  sku              String   @unique
+  priceCents       Int
+  compareAtCents   Int?
+  stock            Int      @default(0)
+  imageUrl         String?
+  isDefault        Boolean  @default(false)
+
+  cartItems        CartItem[]
+  wishlistItems    WishlistItem[]
+  orderItems       OrderItem[]
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName String
+  rating    Int
+  title     String?
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String         @id @default(cuid())
+  cartId    String
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity  Int            @default(1)
+  createdAt DateTime       @default(now())
+
+  @@unique([cartId, variantId])
+}
+
+model Wishlist {
+  id     String         @id @default(cuid())
+  userId String         @unique
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  WishlistItem[]
+}
+
+model WishlistItem {
+  id         String         @id @default(cuid())
+  wishlistId String
+  wishlist   Wishlist       @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@unique([wishlistId, variantId])
+}
+
+enum OrderStatus {
+  PLACED
+  SHIPPED
+  DELIVERED
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+  status         OrderStatus @default(PLACED)
+
+  // address snapshot at time of purchase (never live-joins a mutable Address row)
+  addressId      String?
+  address        Address?    @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  shipToName     String
+  shipToLine1    String
+  shipToLine2    String?
+  shipToCity     String
+  shipToState    String
+  shipToPostalCode String
+  shipToCountry  String
+
+  deliveryOption String
+  subtotalCents  Int
+  shippingCents  Int
+  taxCents       Int
+  totalCents     Int
+
+  items          OrderItem[]
+  placedAt       DateTime    @default(now())
+}
+
+model OrderItem {
+  id           String          @id @default(cuid())
+  orderId      String
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId    String?
+  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  // snapshot at time of purchase (never live-joins a mutable Product/Variant row)
+  productTitle String
+  variantName  String
+  imageUrl     String?
+  unitPriceCents Int
+  quantity     Int
+}
