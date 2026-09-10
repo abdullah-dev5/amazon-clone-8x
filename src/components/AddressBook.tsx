@@ -48,23 +48,44 @@ export function AddressBook({ initialAddresses }: { initialAddresses: AddressDat
   }
 
   async function setDefault(id: string) {
+    const snapshot = addresses;
+    setError(null);
     setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
-    await fetch(`/api/addresses/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ setDefault: true }),
-    });
-    router.refresh();
+    try {
+      const res = await fetch(`/api/addresses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ setDefault: true }),
+      });
+      if (!res.ok) throw new Error();
+      router.refresh();
+    } catch {
+      setAddresses(snapshot);
+      setError("Couldn't update your default address. Please try again.");
+    }
   }
 
   async function remove(id: string) {
+    const snapshot = addresses;
+    setError(null);
     setAddresses((prev) => prev.filter((a) => a.id !== id));
-    await fetch(`/api/addresses/${id}`, { method: "DELETE" });
-    router.refresh();
+    try {
+      const res = await fetch(`/api/addresses/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      router.refresh();
+    } catch {
+      setAddresses(snapshot);
+      setError("Couldn't remove that address. Please try again.");
+    }
   }
 
   return (
     <div className="space-y-4 max-w-2xl">
+      {error && (
+        <p role="alert" className="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
+          {error}
+        </p>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {addresses.map((a) => (
           <div key={a.id} className="rounded-lg border border-gray-300 p-4 text-sm space-y-1">
@@ -110,7 +131,6 @@ export function AddressBook({ initialAddresses }: { initialAddresses: AddressDat
             <input aria-label="ZIP code" placeholder="ZIP code" required value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5" />
             <input aria-label="Phone (optional)" placeholder="Phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5" />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-3">
             <button type="submit" disabled={submitting} className="rounded-full bg-amber-400 px-5 py-1.5 font-medium text-gray-900 hover:bg-amber-300 disabled:opacity-50">
               Save address

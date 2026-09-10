@@ -158,6 +158,12 @@ model Order {
   user           User        @relation(fields: [userId], references: [id])
   status         OrderStatus @default(PLACED)
 
+  // One per checkout session (see lib/checkout.ts) — lets place-order be
+  // called twice (double-click, client retry after a dropped response)
+  // without creating two orders. A unique-constraint violation on this
+  // column means "already placed", not an error.
+  idempotencyKey String      @unique
+
   // address snapshot at time of purchase (never live-joins a mutable Address row)
   addressId      String?
   address        Address?    @relation(fields: [addressId], references: [id], onDelete: SetNull)

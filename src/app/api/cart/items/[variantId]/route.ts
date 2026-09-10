@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
 import { getCartView, removeGuestItem, removeUserItem, updateGuestItem, updateUserItem } from "@/lib/cart";
+import { db } from "@/lib/db";
 
 export async function PATCH(
   req: NextRequest,
@@ -13,11 +14,16 @@ export async function PATCH(
     return NextResponse.json({ error: "A valid quantity is required." }, { status: 400 });
   }
 
+  const variant = await db.productVariant.findUnique({ where: { id: variantId } });
+  if (!variant) {
+    return NextResponse.json({ error: "Product variant not found." }, { status: 404 });
+  }
+
   const userId = await getSessionUserId();
   if (userId) {
-    await updateUserItem(userId, variantId, quantity);
+    await updateUserItem(userId, variantId, quantity, variant.stock);
   } else {
-    await updateGuestItem(variantId, quantity);
+    await updateGuestItem(variantId, quantity, variant.stock);
   }
 
   const cart = await getCartView(userId);

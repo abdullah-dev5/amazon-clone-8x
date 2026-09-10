@@ -43,6 +43,7 @@ export function ProductDetail({
   const [selectedId, setSelectedId] = useState(defaultVariant?.id);
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<"idle" | "adding" | "added" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [wishlisted, setWishlisted] = useState(new Set(initialWishlistedVariantIds));
 
   const selected = product.variants.find((v) => v.id === selectedId) ?? defaultVariant;
@@ -78,17 +79,26 @@ export function ProductDetail({
   async function addToCart() {
     if (!selected) return;
     setStatus("adding");
+    setErrorMessage(null);
     try {
       const res = await fetch("/api/cart/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ variantId: selected.id, quantity }),
       });
-      if (!res.ok) throw new Error("failed");
-      const cart = await res.json();
-      setItemCount(cart.itemCount);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setErrorMessage(data?.error ?? "Something went wrong adding this to your cart.");
+        setStatus("error");
+        return;
+      }
+      setItemCount(data.itemCount);
+      if (data.clamped) {
+        setErrorMessage("We adjusted the quantity in your cart to match available stock.");
+      }
       setStatus("added");
     } catch {
+      setErrorMessage("Something went wrong adding this to your cart.");
       setStatus("error");
     }
   }
@@ -207,8 +217,10 @@ export function ProductDetail({
           >
             Buy Now
           </button>
-          {status === "error" && (
-            <p className="text-sm text-red-600">Something went wrong adding this to your cart.</p>
+          {errorMessage && (
+            <p className={`text-sm ${status === "error" ? "text-red-600" : "text-amber-700"}`}>
+              {errorMessage}
+            </p>
           )}
           <button
             onClick={toggleWishlist}

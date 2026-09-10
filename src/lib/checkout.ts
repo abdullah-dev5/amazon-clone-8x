@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 
 const CHECKOUT_COOKIE = "checkout_state";
@@ -18,6 +19,12 @@ export const DELIVERY_OPTIONS: DeliveryOption[] = [
 export const TAX_RATE = 0.08;
 
 export type CheckoutState = {
+  // Stable for the life of one checkout session; used as the Order's
+  // idempotency key so a double-click or client retry of place-order can't
+  // create two orders. Generated once, the first time state is set, and
+  // naturally rotates on the next checkout because clearCheckoutState()
+  // removes it.
+  checkoutId?: string;
   addressId?: string;
   deliveryOptionId?: string;
   paymentConfirmed?: boolean;
@@ -37,7 +44,7 @@ export async function getCheckoutState(): Promise<CheckoutState> {
 
 export async function setCheckoutState(patch: Partial<CheckoutState>) {
   const current = await getCheckoutState();
-  const next = { ...current, ...patch };
+  const next = { checkoutId: current.checkoutId ?? randomUUID(), ...current, ...patch };
   const store = await cookies();
   store.set(CHECKOUT_COOKIE, JSON.stringify(next), {
     httpOnly: true,

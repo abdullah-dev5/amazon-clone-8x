@@ -16,16 +16,17 @@ export async function POST(req: NextRequest) {
   if (!variant) {
     return NextResponse.json({ error: "Product variant not found." }, { status: 404 });
   }
-
-  const userId = await getSessionUserId();
-  if (userId) {
-    await addUserItem(userId, variantId, quantity);
-  } else {
-    await addGuestItem(variantId, quantity);
+  if (variant.stock < 1) {
+    return NextResponse.json({ error: "This item is out of stock." }, { status: 409 });
   }
 
+  const userId = await getSessionUserId();
+  const result = userId
+    ? await addUserItem(userId, variantId, quantity, variant.stock)
+    : await addGuestItem(variantId, quantity, variant.stock);
+
   const cart = await getCartView(userId);
-  return NextResponse.json(cart);
+  return NextResponse.json({ ...cart, clamped: result.wasClamped });
 }
 
 export async function GET() {

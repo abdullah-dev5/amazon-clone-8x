@@ -18,20 +18,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `${field} is required.` }, { status: 400 });
       }
     }
-    const existingCount = await db.address.count({ where: { userId: user.id } });
-    const created = await db.address.create({
-      data: {
-        userId: user.id,
-        fullName: body.fullName.trim(),
-        line1: body.line1.trim(),
-        line2: body.line2?.trim() || null,
-        city: body.city.trim(),
-        state: body.state.trim(),
-        postalCode: body.postalCode.trim(),
-        country: body.country?.trim() || "US",
-        phone: body.phone?.trim() || null,
-        isDefault: existingCount === 0,
-      },
+    const created = await db.$transaction(async (tx) => {
+      const existingCount = await tx.address.count({ where: { userId: user.id } });
+      return tx.address.create({
+        data: {
+          userId: user.id,
+          fullName: body.fullName.trim(),
+          line1: body.line1.trim(),
+          line2: body.line2?.trim() || null,
+          city: body.city.trim(),
+          state: body.state.trim(),
+          postalCode: body.postalCode.trim(),
+          country: body.country?.trim() || "US",
+          phone: body.phone?.trim() || null,
+          isDefault: existingCount === 0,
+        },
+      });
     });
     addressId = created.id;
   } else {

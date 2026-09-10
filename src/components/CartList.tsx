@@ -5,42 +5,60 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
 import { useCartStore } from "@/lib/cart-store";
-import type { CartLineView } from "@/lib/cart";
+import type { CartLineView, CartView } from "@/lib/cart";
 
 export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
   const [lines, setLines] = useState(initialLines);
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const setItemCount = useCartStore((s) => s.setItemCount);
 
   const subtotalCents = lines.reduce((sum, l) => sum + l.unitPriceCents * l.quantity, 0);
   const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
 
-  async function updateQuantity(variantId: string, quantity: number) {
+  function updateQuantity(variantId: string, quantity: number) {
+    const snapshot = lines;
+    setError(null);
     setLines((prev) =>
       quantity <= 0
         ? prev.filter((l) => l.variantId !== variantId)
         : prev.map((l) => (l.variantId === variantId ? { ...l, quantity } : l))
     );
     startTransition(async () => {
-      const res = await fetch(`/api/cart/items/${variantId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity }),
-      });
-      if (res.ok) {
-        const cart = await res.json();
+      try {
+        const res = await fetch(`/api/cart/items/${variantId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quantity }),
+        });
+        if (!res.ok) throw new Error();
+        // Reconcile with the server's actual result (e.g. it may have
+        // clamped the quantity to current stock) rather than trusting the
+        // optimistic value.
+        const cart: CartView = await res.json();
+        setLines(cart.lines);
         setItemCount(cart.itemCount);
+      } catch {
+        setLines(snapshot);
+        setError("Couldn't update that item's quantity. Please try again.");
       }
     });
   }
 
-  async function removeItem(variantId: string) {
+  function removeItem(variantId: string) {
+    const snapshot = lines;
+    setError(null);
     setLines((prev) => prev.filter((l) => l.variantId !== variantId));
     startTransition(async () => {
-      const res = await fetch(`/api/cart/items/${variantId}`, { method: "DELETE" });
-      if (res.ok) {
-        const cart = await res.json();
+      try {
+        const res = await fetch(`/api/cart/items/${variantId}`, { method: "DELETE" });
+        if (!res.ok) throw new Error();
+        const cart: CartView = await res.json();
+        setLines(cart.lines);
         setItemCount(cart.itemCount);
+      } catch {
+        setLines(snapshot);
+        setError("Couldn't remove that item. Please try again.");
       }
     });
   }
@@ -62,6 +80,11 @@ export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
         <div className="p-4 flex justify-between text-sm text-gray-600">
           <span>{itemCount} item{itemCount === 1 ? "" : "s"} in cart</span>
         </div>
+        {error && (
+          <p role="alert" className="px-4 py-2 text-sm text-red-600 bg-red-50">
+            {error}
+          </p>
+        )}
         {lines.map((line) => (
           <div key={line.variantId} className="p-4 flex gap-4">
             <Link href={`/product/${line.productSlug}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded bg-gray-100">
@@ -77,8 +100,9 @@ export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
               <p className="font-semibold text-gray-900 mt-1">{formatPrice(line.unitPriceCents)}</p>
               <div className="mt-2 flex items-center gap-3 text-sm">
                 <label className="flex items-center gap-1">
-                  Qty:
+                  <span id={`qty-label-${line.variantId}`}>Qty:</span>
                   <select
+                    aria-labelledby={`qty-label-${line.variantId}`}
                     value={line.quantity}
                     onChange={(e) => updateQuantity(line.variantId, Number(e.target.value))}
                     disabled={isPending}

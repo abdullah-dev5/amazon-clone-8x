@@ -14,26 +14,28 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const existingCount = await db.address.count({ where: { userId: user.id } });
-  const makeDefault = existingCount === 0 || !!body.isDefault;
+  const address = await db.$transaction(async (tx) => {
+    const existingCount = await tx.address.count({ where: { userId: user.id } });
+    const makeDefault = existingCount === 0 || !!body.isDefault;
 
-  if (makeDefault) {
-    await db.address.updateMany({ where: { userId: user.id }, data: { isDefault: false } });
-  }
+    if (makeDefault) {
+      await tx.address.updateMany({ where: { userId: user.id }, data: { isDefault: false } });
+    }
 
-  const address = await db.address.create({
-    data: {
-      userId: user.id,
-      fullName: body.fullName.trim(),
-      line1: body.line1.trim(),
-      line2: body.line2?.trim() || null,
-      city: body.city.trim(),
-      state: body.state.trim(),
-      postalCode: body.postalCode.trim(),
-      country: body.country?.trim() || "US",
-      phone: body.phone?.trim() || null,
-      isDefault: makeDefault,
-    },
+    return tx.address.create({
+      data: {
+        userId: user.id,
+        fullName: body.fullName.trim(),
+        line1: body.line1.trim(),
+        line2: body.line2?.trim() || null,
+        city: body.city.trim(),
+        state: body.state.trim(),
+        postalCode: body.postalCode.trim(),
+        country: body.country?.trim() || "US",
+        phone: body.phone?.trim() || null,
+        isDefault: makeDefault,
+      },
+    });
   });
 
   return NextResponse.json(address);

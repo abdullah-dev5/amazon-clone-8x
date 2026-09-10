@@ -50,24 +50,30 @@ async function writeGuestCart(lines: GuestCartLine[]) {
   });
 }
 
-export async function addGuestItem(variantId: string, quantity: number) {
+/** Adds `quantity` to the line (capped at `stock`); reports whether the cap kicked in. */
+export async function addGuestItem(variantId: string, quantity: number, stock: number) {
   const lines = await readGuestCart();
   const existing = lines.find((l) => l.variantId === variantId);
+  const requestedTotal = (existing?.quantity ?? 0) + quantity;
+  const clamped = Math.min(requestedTotal, stock);
   if (existing) {
-    existing.quantity += quantity;
+    existing.quantity = clamped;
   } else {
-    lines.push({ variantId, quantity });
+    lines.push({ variantId, quantity: clamped });
   }
   await writeGuestCart(lines);
+  return { quantity: clamped, wasClamped: clamped < requestedTotal };
 }
 
-export async function updateGuestItem(variantId: string, quantity: number) {
+export async function updateGuestItem(variantId: string, quantity: number, stock = Infinity) {
+  const clamped = Math.max(0, Math.min(quantity, stock));
   const lines = await readGuestCart();
   const next =
-    quantity <= 0
+    clamped <= 0
       ? lines.filter((l) => l.variantId !== variantId)
-      : lines.map((l) => (l.variantId === variantId ? { ...l, quantity } : l));
+      : lines.map((l) => (l.variantId === variantId ? { ...l, quantity: clamped } : l));
   await writeGuestCart(next);
+  return clamped;
 }
 
 export async function removeGuestItem(variantId: string) {
@@ -87,28 +93,39 @@ export async function getOrCreateUserCart(userId: string) {
   return db.cart.create({ data: { userId } });
 }
 
-export async function addUserItem(userId: string, variantId: string, quantity: number) {
+/** Adds `quantity` to the line (capped at `stock`); reports whether the cap kicked in. */
+export async function addUserItem(userId: string, variantId: string, quantity: number, stock: number) {
   const cart = await getOrCreateUserCart(userId);
-  await db.cartItem.upsert({
-    where: { cartId_variantId: { cartId: cart.id, variantId } },
-    create: { cartId: cart.id, variantId, quantity },
-    update: { quantity: { increment: quantity } },
+  return db.$transaction(async (tx) => {
+    const existing = await tx.cartItem.findUnique({
+      where: { cartId_variantId: { cartId: cart.id, variantId } },
+    });
+    const requestedTotal = (existing?.quantity ?? 0) + quantity;
+    const clamped = Math.min(requestedTotal, stock);
+    await tx.cartItem.upsert({
+      where: { cartId_variantId: { cartId: cart.id, variantId } },
+      create: { cartId: cart.id, variantId, quantity: clamped },
+      update: { quantity: clamped },
+    });
+    return { quantity: clamped, wasClamped: clamped < requestedTotal };
   });
 }
 
-export async function updateUserItem(userId: string, variantId: string, quantity: number) {
+export async function updateUserItem(userId: string, variantId: string, quantity: number, stock = Infinity) {
   const cart = await getOrCreateUserCart(userId);
-  if (quantity <= 0) {
+  const clamped = Math.max(0, Math.min(quantity, stock));
+  if (clamped <= 0) {
     await db.cartItem
       .delete({ where: { cartId_variantId: { cartId: cart.id, variantId } } })
       .catch(() => undefined);
   } else {
     await db.cartItem.upsert({
       where: { cartId_variantId: { cartId: cart.id, variantId } },
-      create: { cartId: cart.id, variantId, quantity },
-      update: { quantity },
+      create: { cartId: cart.id, variantId, quantity: clamped },
+      update: { quantity: clamped },
     });
   }
+  return clamped;
 }
 
 export async function removeUserItem(userId: string, variantId: string) {
@@ -120,13 +137,12 @@ export async function mergeGuestCartIntoUser(userId: string) {
   const guestLines = await readGuestCart();
   if (guestLines.length === 0) return;
 
-  const cart = await getOrCreateUserCart(userId);
   for (const line of guestLines) {
-    await db.cartItem.upsert({
-      where: { cartId_variantId: { cartId: cart.id, variantId: line.variantId } },
-      create: { cartId: cart.id, variantId: line.variantId, quantity: line.quantity },
-      update: { quantity: { increment: line.quantity } },
-    });
+    // Stock may have moved since the item was added as a guest — re-check
+    // and re-clamp against the live value rather than trusting the cookie.
+    const variant = await db.productVariant.findUnique({ where: { id: line.variantId } });
+    if (!variant || variant.stock < 1) continue;
+    await addUserItem(userId, line.variantId, line.quantity, variant.stock);
   }
   await clearGuestCart();
 }
