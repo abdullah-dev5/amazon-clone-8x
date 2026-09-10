@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { addressSchema } from "@/lib/validation/address";
 
 export type AddressData = {
   id: string;
@@ -22,13 +23,26 @@ export function AddressBook({ initialAddresses }: { initialAddresses: AddressDat
   const [addresses, setAddresses] = useState(initialAddresses);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function addAddress(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+
+    const localCheck = addressSchema.safeParse(form);
+    if (!localCheck.success) {
+      const errors: Record<string, string> = {};
+      for (const issue of localCheck.error.issues) {
+        const key = String(issue.path[0] ?? "form");
+        if (!errors[key]) errors[key] = issue.message;
+      }
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+    setSubmitting(true);
     const res = await fetch("/api/addresses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -123,13 +137,31 @@ export function AddressBook({ initialAddresses }: { initialAddresses: AddressDat
       {showForm && (
         <form onSubmit={addAddress} className="rounded-lg border border-gray-300 p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input aria-label="Full name" placeholder="Full name" required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5 sm:col-span-2" />
-            <input aria-label="Address line 1" placeholder="Address line 1" required value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5 sm:col-span-2" />
+            <div className="sm:col-span-2">
+              <input aria-label="Full name" placeholder="Full name" required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} aria-invalid={!!fieldErrors.fullName} className="w-full rounded border border-gray-400 px-3 py-1.5" />
+              {fieldErrors.fullName && <p className="mt-1 text-xs text-red-600">{fieldErrors.fullName}</p>}
+            </div>
+            <div className="sm:col-span-2">
+              <input aria-label="Address line 1" placeholder="Address line 1" required value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} aria-invalid={!!fieldErrors.line1} className="w-full rounded border border-gray-400 px-3 py-1.5" />
+              {fieldErrors.line1 && <p className="mt-1 text-xs text-red-600">{fieldErrors.line1}</p>}
+            </div>
             <input aria-label="Address line 2 (optional)" placeholder="Address line 2 (optional)" value={form.line2} onChange={(e) => setForm({ ...form, line2: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5 sm:col-span-2" />
-            <input aria-label="City" placeholder="City" required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5" />
-            <input aria-label="State" placeholder="State" required value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5" />
-            <input aria-label="ZIP code" placeholder="ZIP code" required value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5" />
-            <input aria-label="Phone (optional)" placeholder="Phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded border border-gray-400 px-3 py-1.5" />
+            <div>
+              <input aria-label="City" placeholder="City" required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} aria-invalid={!!fieldErrors.city} className="w-full rounded border border-gray-400 px-3 py-1.5" />
+              {fieldErrors.city && <p className="mt-1 text-xs text-red-600">{fieldErrors.city}</p>}
+            </div>
+            <div>
+              <input aria-label="State" placeholder="State" required value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} aria-invalid={!!fieldErrors.state} className="w-full rounded border border-gray-400 px-3 py-1.5" />
+              {fieldErrors.state && <p className="mt-1 text-xs text-red-600">{fieldErrors.state}</p>}
+            </div>
+            <div>
+              <input aria-label="ZIP code" placeholder="ZIP code" required value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} aria-invalid={!!fieldErrors.postalCode} className="w-full rounded border border-gray-400 px-3 py-1.5" />
+              {fieldErrors.postalCode && <p className="mt-1 text-xs text-red-600">{fieldErrors.postalCode}</p>}
+            </div>
+            <div>
+              <input aria-label="Phone (optional)" placeholder="Phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} aria-invalid={!!fieldErrors.phone} className="w-full rounded border border-gray-400 px-3 py-1.5" />
+              {fieldErrors.phone && <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>}
+            </div>
           </div>
           <div className="flex gap-3">
             <button type="submit" disabled={submitting} className="rounded-full bg-amber-400 px-5 py-1.5 font-medium text-gray-900 hover:bg-amber-300 disabled:opacity-50">

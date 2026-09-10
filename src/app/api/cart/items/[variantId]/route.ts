@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
 import { getCartView, removeGuestItem, removeUserItem, updateGuestItem, updateUserItem } from "@/lib/cart";
 import { db } from "@/lib/db";
+import { updateCartItemSchema } from "@/lib/validation/cart";
+import { parseRequestBody } from "@/lib/validation/helpers";
 
 export async function PATCH(
   req: NextRequest,
@@ -9,10 +11,9 @@ export async function PATCH(
 ) {
   const { variantId } = await params;
   const body = await req.json().catch(() => null);
-  const quantity = Number.isInteger(body?.quantity) ? body.quantity : null;
-  if (quantity === null) {
-    return NextResponse.json({ error: "A valid quantity is required." }, { status: 400 });
-  }
+  const parsed = parseRequestBody(updateCartItemSchema, body);
+  if (!parsed.success) return parsed.response;
+  const { quantity } = parsed.data;
 
   const variant = await db.productVariant.findUnique({ where: { id: variantId } });
   if (!variant) {

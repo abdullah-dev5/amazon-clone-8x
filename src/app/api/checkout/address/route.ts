@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { setCheckoutState } from "@/lib/checkout";
 import { db } from "@/lib/db";
+import { addressSchema } from "@/lib/validation/address";
+import { parseRequestBody } from "@/lib/validation/helpers";
 
 export async function POST(req: NextRequest) {
   const user = await requireUser().catch(() => null);
@@ -12,25 +14,23 @@ export async function POST(req: NextRequest) {
   let addressId: string | undefined = typeof body?.addressId === "string" ? body.addressId : undefined;
 
   if (!addressId) {
-    const required = ["fullName", "line1", "city", "state", "postalCode"];
-    for (const field of required) {
-      if (typeof body?.[field] !== "string" || !body[field].trim()) {
-        return NextResponse.json({ error: `${field} is required.` }, { status: 400 });
-      }
-    }
+    const parsed = parseRequestBody(addressSchema, body);
+    if (!parsed.success) return parsed.response;
+    const address = parsed.data;
+
     const created = await db.$transaction(async (tx) => {
       const existingCount = await tx.address.count({ where: { userId: user.id } });
       return tx.address.create({
         data: {
           userId: user.id,
-          fullName: body.fullName.trim(),
-          line1: body.line1.trim(),
-          line2: body.line2?.trim() || null,
-          city: body.city.trim(),
-          state: body.state.trim(),
-          postalCode: body.postalCode.trim(),
-          country: body.country?.trim() || "US",
-          phone: body.phone?.trim() || null,
+          fullName: address.fullName,
+          line1: address.line1,
+          line2: address.line2,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country ?? "US",
+          phone: address.phone,
           isDefault: existingCount === 0,
         },
       });

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { signinSchema, signupSchema } from "@/lib/validation/auth";
 
 export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   const router = useRouter();
@@ -12,16 +13,29 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSubmitting(true);
 
     const url = mode === "signin" ? "/api/auth/signin" : "/api/auth/signup";
     const body = mode === "signin" ? { email, password } : { name, email, password };
+
+    const localCheck = mode === "signin" ? signinSchema.safeParse(body) : signupSchema.safeParse(body);
+    if (!localCheck.success) {
+      const errors: Record<string, string> = {};
+      for (const issue of localCheck.error.issues) {
+        const key = String(issue.path[0] ?? "form");
+        if (!errors[key]) errors[key] = issue.message;
+      }
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+    setSubmitting(true);
 
     const res = await fetch(url, {
       method: "POST",
@@ -56,8 +70,13 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                aria-invalid={!!fieldErrors.name}
+                aria-describedby={fieldErrors.name ? "auth-name-error" : undefined}
                 className="w-full rounded border border-gray-400 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
+              {fieldErrors.name && (
+                <p id="auth-name-error" className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>
+              )}
             </div>
           )}
           <div>
@@ -68,8 +87,13 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={!!fieldErrors.email}
+              aria-describedby={fieldErrors.email ? "auth-email-error" : undefined}
               className="w-full rounded border border-gray-400 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
+            {fieldErrors.email && (
+              <p id="auth-email-error" className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+            )}
           </div>
           <div>
             <label htmlFor="auth-password" className="block text-sm font-medium text-gray-800 mb-1">Password</label>
@@ -80,14 +104,18 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
               minLength={mode === "signup" ? 8 : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={!!fieldErrors.password}
+              aria-describedby={fieldErrors.password ? "auth-password-error" : undefined}
               className="w-full rounded border border-gray-400 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
-            {mode === "signup" && (
-              <p className="mt-1 text-xs text-gray-500">At least 8 characters.</p>
+            {fieldErrors.password ? (
+              <p id="auth-password-error" className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+            ) : (
+              mode === "signup" && <p className="mt-1 text-xs text-gray-500">At least 8 characters.</p>
             )}
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
           <button
             type="submit"

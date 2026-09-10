@@ -4,15 +4,14 @@ import { db } from "@/lib/db";
 import { setSessionCookie } from "@/lib/auth";
 import { mergeGuestCartIntoUser } from "@/lib/cart";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { signinSchema } from "@/lib/validation/auth";
+import { parseRequestBody } from "@/lib/validation/helpers";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-  const password = typeof body?.password === "string" ? body.password : "";
-
-  if (!email || !password) {
-    return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
-  }
+  const parsed = parseRequestBody(signinSchema, body);
+  if (!parsed.success) return parsed.response;
+  const { email, password } = parsed.data;
 
   // Per-account brute-force guard: 10 attempts per 15 minutes. Keyed by the
   // submitted email (not IP) since that's the thing actually being

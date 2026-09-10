@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
 import { addGuestItem, addUserItem, getCartView } from "@/lib/cart";
 import { db } from "@/lib/db";
+import { addCartItemSchema } from "@/lib/validation/cart";
+import { parseRequestBody } from "@/lib/validation/helpers";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const variantId = typeof body?.variantId === "string" ? body.variantId : "";
-  const quantity = Number.isInteger(body?.quantity) ? body.quantity : 1;
-
-  if (!variantId || quantity < 1) {
-    return NextResponse.json({ error: "A valid variantId and quantity are required." }, { status: 400 });
-  }
+  const parsed = parseRequestBody(addCartItemSchema, body);
+  if (!parsed.success) return parsed.response;
+  const { variantId, quantity } = parsed.data;
 
   const variant = await db.productVariant.findUnique({ where: { id: variantId } });
   if (!variant) {

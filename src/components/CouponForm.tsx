@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { couponCodeSchema } from "@/lib/validation/coupon";
 
 export function CouponForm({
   appliedCode,
@@ -17,8 +18,15 @@ export function CouponForm({
 
   async function apply(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+
+    const localCheck = couponCodeSchema.safeParse(code);
+    if (!localCheck.success) {
+      setError(localCheck.error.issues[0]?.message ?? "Enter a valid coupon code.");
+      return;
+    }
+
+    setSubmitting(true);
     const res = await fetch("/api/checkout/coupon", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { setSessionCookie } from "@/lib/auth";
 import { mergeGuestCartIntoUser } from "@/lib/cart";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { signupSchema } from "@/lib/validation/auth";
+import { parseRequestBody } from "@/lib/validation/helpers";
 
 export async function POST(req: NextRequest) {
   // Coarse spam-signup guard: 20 accounts per hour from the same client.
@@ -22,16 +24,9 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-  const password = typeof body?.password === "string" ? body.password : "";
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
-
-  if (!email || !password || !name) {
-    return NextResponse.json({ error: "Name, email, and password are required." }, { status: 400 });
-  }
-  if (password.length < 8) {
-    return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 });
-  }
+  const parsed = parseRequestBody(signupSchema, body);
+  if (!parsed.success) return parsed.response;
+  const { email, password, name } = parsed.data;
 
   // The findUnique below is a courtesy check for the common case (fast,
   // friendly error). It can't fully prevent a concurrent duplicate signup —

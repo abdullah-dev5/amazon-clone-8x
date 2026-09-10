@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { addressSchema } from "@/lib/validation/address";
+import { parseRequestBody } from "@/lib/validation/helpers";
+
+const partialAddressSchema = addressSchema.partial();
 
 export async function PATCH(
   req: NextRequest,
@@ -23,17 +27,12 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   }
 
+  const parsed = parseRequestBody(partialAddressSchema, body);
+  if (!parsed.success) return parsed.response;
+
   const updated = await db.address.update({
     where: { id: addressId },
-    data: {
-      fullName: typeof body?.fullName === "string" ? body.fullName.trim() : undefined,
-      line1: typeof body?.line1 === "string" ? body.line1.trim() : undefined,
-      line2: typeof body?.line2 === "string" ? body.line2.trim() || null : undefined,
-      city: typeof body?.city === "string" ? body.city.trim() : undefined,
-      state: typeof body?.state === "string" ? body.state.trim() : undefined,
-      postalCode: typeof body?.postalCode === "string" ? body.postalCode.trim() : undefined,
-      phone: typeof body?.phone === "string" ? body.phone.trim() || null : undefined,
-    },
+    data: parsed.data,
   });
 
   return NextResponse.json(updated);
