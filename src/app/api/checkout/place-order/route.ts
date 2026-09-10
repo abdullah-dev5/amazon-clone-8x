@@ -6,6 +6,7 @@ import { getCartView } from "@/lib/cart";
 import { clearCheckoutState, getCheckoutState, getDeliveryOption } from "@/lib/checkout";
 import { validateCouponCode } from "@/lib/coupon";
 import { computeOrderTotals } from "@/lib/pricing";
+import { withApiErrorLogging } from "@/lib/api-error";
 
 class InsufficientStockError extends Error {
   constructor(productTitle: string, variantName: string) {
@@ -14,7 +15,7 @@ class InsufficientStockError extends Error {
   }
 }
 
-export async function POST() {
+export const POST = withApiErrorLogging("POST /api/checkout/place-order", async () => {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
@@ -152,4 +153,4 @@ export async function POST() {
     }
     throw err;
   }
-}
+});

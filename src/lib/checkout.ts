@@ -63,8 +63,8 @@ export async function clearCheckoutState() {
 }
 
 export async function clearCouponFromCheckoutState() {
-  const current = await getCheckoutState();
-  const { couponCode: _removed, ...rest } = current;
+  const rest = await getCheckoutState();
+  delete rest.couponCode;
   const store = await cookies();
   store.set(CHECKOUT_COOKIE, JSON.stringify(rest), {
     httpOnly: true,

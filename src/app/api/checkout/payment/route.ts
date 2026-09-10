@@ -3,8 +3,9 @@ import { requireUser } from "@/lib/auth";
 import { setCheckoutState } from "@/lib/checkout";
 import { paymentSchema } from "@/lib/validation/payment";
 import { parseRequestBody } from "@/lib/validation/helpers";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/checkout/payment", async (req: NextRequest) => {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
@@ -17,4 +18,4 @@ export async function POST(req: NextRequest) {
   const last4 = parsed.data.cardNumber.slice(-4);
   await setCheckoutState({ paymentConfirmed: true, paymentLast4: last4 });
   return NextResponse.json({ ok: true, last4 });
-}
+});

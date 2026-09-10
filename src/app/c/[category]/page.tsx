@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { searchProducts, type SortOption } from "@/lib/catalog";
 import { ProductCard } from "@/components/ProductCard";
 import { FilterSidebar, SortBar } from "@/components/ResultsToolbar";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function CategoryPage({
 
   return (
     <div className="mx-auto max-w-7xl px-3 py-4">
+      <Breadcrumb items={[{ label: category.name }]} />
       <h1 className="text-xl font-bold text-gray-900 mb-3">{category.name}</h1>
       <div className="flex flex-col sm:flex-row gap-6">
         <FilterSidebar currentParams={sp} categories={[]} showCategoryFilter={false} />

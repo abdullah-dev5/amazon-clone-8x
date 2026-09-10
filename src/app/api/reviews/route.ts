@@ -5,8 +5,9 @@ import { db } from "@/lib/db";
 import { recomputeProductRating } from "@/lib/reviews";
 import { createReviewSchema } from "@/lib/validation/review";
 import { parseRequestBody } from "@/lib/validation/helpers";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/reviews", async (req: NextRequest) => {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
@@ -51,7 +52,6 @@ export async function POST(req: NextRequest) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return NextResponse.json({ error: "You've already reviewed this product." }, { status: 409 });
     }
-    console.error("POST /api/reviews: unexpected error", err);
-    return NextResponse.json({ error: "Something went wrong submitting your review." }, { status: 500 });
+    throw err;
   }
-}
+});

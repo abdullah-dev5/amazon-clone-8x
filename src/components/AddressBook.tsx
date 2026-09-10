@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { MapPin, Plus } from "lucide-react";
 import { addressSchema } from "@/lib/validation/address";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,8 +139,8 @@ export function AddressBook({ initialAddresses }: { initialAddresses: AddressDat
       )}
 
       {!showForm && (
-        <button onClick={() => setShowForm(true)} className="text-blue-700 hover:underline text-sm">
-          + Add a new address
+        <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-1 text-blue-700 hover:underline text-sm">
+          <Plus className="h-4 w-4" /> Add a new address
         </button>
       )}
 

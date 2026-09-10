@@ -7,8 +7,9 @@ import { computeDiscountCents } from "@/lib/pricing";
 import { db } from "@/lib/db";
 import { couponCodeSchema } from "@/lib/validation/coupon";
 import { parseRequestBody } from "@/lib/validation/helpers";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/checkout/coupon", async (req: NextRequest) => {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
@@ -30,12 +31,12 @@ export async function POST(req: NextRequest) {
 
   const discountCents = computeDiscountCents(cart.subtotalCents, result.coupon);
   return NextResponse.json({ code: result.coupon.code, discountCents });
-}
+});
 
-export async function DELETE() {
+export const DELETE = withApiErrorLogging("DELETE /api/checkout/coupon", async () => {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
   await clearCouponFromCheckoutState();
   return NextResponse.json({ ok: true });
-}
+});

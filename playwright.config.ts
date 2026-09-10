@@ -4,6 +4,10 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
   fullyParallel: false,
+  // Tests share one real SQLite dev DB (no per-test isolated database), so
+  // forcing a single worker keeps them deterministic rather than trying to
+  // make every test file independently parallel-safe against shared data.
+  workers: 1,
   retries: 0,
   reporter: [["list"]],
   use: {

@@ -4,8 +4,9 @@ import { setCheckoutState } from "@/lib/checkout";
 import { db } from "@/lib/db";
 import { addressSchema } from "@/lib/validation/address";
 import { parseRequestBody } from "@/lib/validation/helpers";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/checkout/address", async (req: NextRequest) => {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
@@ -45,4 +46,4 @@ export async function POST(req: NextRequest) {
 
   await setCheckoutState({ addressId });
   return NextResponse.json({ addressId });
-}
+});

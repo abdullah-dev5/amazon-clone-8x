@@ -6,8 +6,9 @@ import { mergeGuestCartIntoUser } from "@/lib/cart";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { signinSchema } from "@/lib/validation/auth";
 import { parseRequestBody } from "@/lib/validation/helpers";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/auth/signin", async (req: NextRequest) => {
   const body = await req.json().catch(() => null);
   const parsed = parseRequestBody(signinSchema, body);
   if (!parsed.success) return parsed.response;
@@ -33,4 +34,4 @@ export async function POST(req: NextRequest) {
   await mergeGuestCartIntoUser(user.id);
 
   return NextResponse.json({ id: user.id, email: user.email, name: user.name });
-}
+});

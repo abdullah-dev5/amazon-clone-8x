@@ -4,8 +4,9 @@ import { addGuestItem, addUserItem, getCartView } from "@/lib/cart";
 import { db } from "@/lib/db";
 import { addCartItemSchema } from "@/lib/validation/cart";
 import { parseRequestBody } from "@/lib/validation/helpers";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/cart/items", async (req: NextRequest) => {
   const body = await req.json().catch(() => null);
   const parsed = parseRequestBody(addCartItemSchema, body);
   if (!parsed.success) return parsed.response;
@@ -26,10 +27,10 @@ export async function POST(req: NextRequest) {
 
   const cart = await getCartView(userId);
   return NextResponse.json({ ...cart, clamped: result.wasClamped });
-}
+});
 
-export async function GET() {
+export const GET = withApiErrorLogging("GET /api/cart/items", async () => {
   const userId = await getSessionUserId();
   const cart = await getCartView(userId);
   return NextResponse.json(cart);
-}
+});

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MapPin } from "lucide-react";
 import { getCurrentUser, getSessionUserId } from "@/lib/auth";
 import { getCartView } from "@/lib/cart";
 import { db } from "@/lib/db";
@@ -14,6 +15,13 @@ export async function Header() {
   ]);
   const cart = await getCartView(userId);
 
+  const defaultAddress = userId
+    ? await db.address.findFirst({ where: { userId, isDefault: true } })
+    : null;
+  const deliverToLabel = defaultAddress
+    ? `${defaultAddress.city} ${defaultAddress.postalCode}`
+    : "Seattle 98109";
+
   return (
     <header className="sticky top-0 z-30">
       <div className="bg-[#131921] text-white">
@@ -22,10 +30,16 @@ export async function Header() {
             <span className="text-xl font-bold tracking-tight">amazonw</span>
           </Link>
 
-          <div className="hidden md:flex shrink-0 flex-col justify-center px-2 py-1 rounded hover:outline hover:outline-white/40 cursor-pointer">
-            <span className="text-xs text-gray-300">Deliver to</span>
-            <span className="text-sm font-bold">Seattle 98109</span>
-          </div>
+          <Link
+            href="/account/addresses"
+            className="hidden md:flex shrink-0 items-center gap-1 px-2 py-1 rounded hover:outline hover:outline-white/40"
+          >
+            <MapPin className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="flex flex-col justify-center">
+              <span className="text-xs text-gray-300">Deliver to</span>
+              <span className="text-sm font-bold">{deliverToLabel}</span>
+            </span>
+          </Link>
 
           {/* Own full-width row on mobile (order-last + w-full inside this flex-wrap
               container) so it doesn't get squeezed by the other, non-shrinking header

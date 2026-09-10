@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -28,8 +29,8 @@ export default async function OrderDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-3 py-6">
-      <Link href="/account/orders" className="text-sm text-blue-700 hover:underline">
-        &larr; Back to your orders
+      <Link href="/account/orders" className="inline-flex items-center gap-1 text-sm text-blue-700 hover:underline">
+        <ArrowLeft className="h-4 w-4" /> Back to your orders
       </Link>
       <div className="mt-2 mb-1 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-gray-900">

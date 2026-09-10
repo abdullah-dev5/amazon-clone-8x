@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Footer() {
   return (
     <footer className="mt-12 bg-[#232f3e] text-white">
@@ -34,8 +36,16 @@ export function Footer() {
         <div>
           <h4 className="mb-3 font-bold">Let Us Help You</h4>
           <ul className="space-y-2 text-gray-300">
-            <li>Your Account</li>
-            <li>Your Orders</li>
+            <li>
+              <Link href="/account" className="hover:underline hover:text-white">
+                Your Account
+              </Link>
+            </li>
+            <li>
+              <Link href="/account/orders" className="hover:underline hover:text-white">
+                Your Orders
+              </Link>
+            </li>
             <li>Help</li>
           </ul>
         </div>

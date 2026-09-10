@@ -1,3 +1,5 @@
+import { Check } from "lucide-react";
+
 export type Step = { id: string; label: string };
 
 /**
@@ -9,8 +11,12 @@ export type Step = { id: string; label: string };
  * the checkmark/number difference carries the state too.
  */
 export function StepIndicator({ steps, currentIndex }: { steps: Step[]; currentIndex: number }) {
+  const groupLabel =
+    currentIndex >= steps.length
+      ? `All ${steps.length} steps complete`
+      : `Step ${currentIndex + 1} of ${steps.length}: ${steps[currentIndex]?.label}`;
   return (
-    <div role="group" aria-label={`Step ${currentIndex + 1} of ${steps.length}: ${steps[currentIndex]?.label}`} className="flex items-start">
+    <div role="group" aria-label={groupLabel} className="flex items-start">
       {steps.map((step, i) => {
         const isDone = i < currentIndex;
         const isCurrent = i === currentIndex;
@@ -27,7 +33,7 @@ export function StepIndicator({ steps, currentIndex }: { steps: Step[]; currentI
                       : "bg-gray-200 text-gray-500"
                 }`}
               >
-                {isDone ? "✓" : i + 1}
+                {isDone ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
               </div>
               <span
                 className={`text-xs text-center whitespace-nowrap ${

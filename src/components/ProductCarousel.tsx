@@ -38,7 +38,6 @@ export function ProductCarousel({ products }: { products: ProductCardData[] }) {
       el.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [products.length]);
 
   function scrollByAmount(direction: 1 | -1) {

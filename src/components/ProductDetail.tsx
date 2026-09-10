@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart } from "lucide-react";
+import { Heart, Check } from "lucide-react";
 import { StarRating } from "@/components/StarRating";
 import { PriceTag } from "@/components/PriceTag";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export function ProductDetail({
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<"idle" | "adding" | "added" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorIsWarning, setErrorIsWarning] = useState(false);
   const [wishlisted, setWishlisted] = useState(new Set(initialWishlistedVariantIds));
 
   const selected = product.variants.find((v) => v.id === selectedId) ?? defaultVariant;
@@ -62,26 +64,41 @@ export function ProductDetail({
       return;
     }
     const variantId = selected.id;
+    const snapshot = wishlisted;
     const next = new Set(wishlisted);
-    if (next.has(variantId)) {
+    const wasWishlisted = next.has(variantId);
+    if (wasWishlisted) {
       next.delete(variantId);
-      setWishlisted(next);
-      await fetch(`/api/wishlist/${variantId}`, { method: "DELETE" });
     } else {
       next.add(variantId);
-      setWishlisted(next);
-      await fetch("/api/wishlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variantId }),
-      });
+    }
+    setWishlisted(next);
+    setErrorMessage(null);
+    setErrorIsWarning(false);
+
+    try {
+      const res = wasWishlisted
+        ? await fetch(`/api/wishlist/${variantId}`, { method: "DELETE" })
+        : await fetch("/api/wishlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ variantId }),
+          });
+      if (!res.ok) throw new Error();
+    } catch {
+      setWishlisted(snapshot);
+      setErrorMessage("Couldn't update your wishlist. Please try again.");
     }
   }
 
-  async function addToCart() {
-    if (!selected) return;
+  /** Returns whether the item was actually added — callers that need to
+   * chain a next step (Buy Now) should check this rather than assuming
+   * success. */
+  async function addToCart(): Promise<boolean> {
+    if (!selected) return false;
     setStatus("adding");
     setErrorMessage(null);
+    setErrorIsWarning(false);
     try {
       const res = await fetch("/api/cart/items", {
         method: "POST",
@@ -92,22 +109,27 @@ export function ProductDetail({
       if (!res.ok) {
         setErrorMessage(data?.error ?? "Something went wrong adding this to your cart.");
         setStatus("error");
-        return;
+        return false;
       }
       setItemCount(data.itemCount);
       if (data.clamped) {
         setErrorMessage("We adjusted the quantity in your cart to match available stock.");
+        setErrorIsWarning(true);
       }
       setStatus("added");
+      return true;
     } catch {
       setErrorMessage("Something went wrong adding this to your cart.");
       setStatus("error");
+      return false;
     }
   }
 
   async function buyNow() {
-    await addToCart();
-    router.push("/checkout/address");
+    const added = await addToCart();
+    if (added) {
+      router.push("/checkout/address");
+    }
   }
 
   return (
@@ -140,13 +162,13 @@ export function ProductDetail({
       <div className="space-y-4">
         <div>
           {product.brand && (
-            <p className="text-sm text-blue-700 hover:underline cursor-pointer">
+            <Link href={`/s?k=${encodeURIComponent(product.brand)}`} className="text-sm text-blue-700 hover:underline">
               Visit the {product.brand} Store
-            </p>
+            </Link>
           )}
           <h1 className="text-xl font-semibold text-gray-900">{product.title}</h1>
           <div className="mt-1">
-            <StarRating rating={product.rating} reviewCount={product.reviewCount} />
+            <StarRating rating={product.rating} reviewCount={product.reviewCount} linkToReviews />
           </div>
         </div>
 
@@ -206,13 +228,21 @@ export function ProductDetail({
           )}
 
           <Button onClick={addToCart} disabled={!inStock || status === "adding"} className="w-full">
-            {status === "adding" ? "Adding…" : status === "added" ? "Added ✓" : "Add to Cart"}
+            {status === "adding" ? (
+              "Adding…"
+            ) : status === "added" ? (
+              <span className="inline-flex items-center gap-1">
+                <Check className="h-4 w-4" /> Added
+              </span>
+            ) : (
+              "Add to Cart"
+            )}
           </Button>
           <Button onClick={buyNow} disabled={!inStock || status === "adding"} variant="accent" className="w-full">
             Buy Now
           </Button>
           {errorMessage && (
-            <p role="alert" className={`text-sm ${status === "error" ? "text-red-600" : "text-amber-700"}`}>
+            <p role="alert" className={`text-sm ${errorIsWarning ? "text-amber-700" : "text-red-600"}`}>
               {errorMessage}
             </p>
           )}

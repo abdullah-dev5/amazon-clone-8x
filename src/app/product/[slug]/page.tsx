@@ -6,6 +6,7 @@ import { ProductDetail } from "@/components/ProductDetail";
 import { RecordRecentlyViewed } from "@/components/RecordRecentlyViewed";
 import { RelatedProducts } from "@/components/RelatedProducts";
 import { ReviewsSection } from "@/components/ReviewsSection";
+import { Breadcrumb } from "@/components/Breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function ProductPage({
       include: {
         variants: true,
         reviews: { orderBy: { createdAt: "desc" } },
+        category: true,
       },
     }),
     getCurrentUser(),
@@ -52,6 +54,14 @@ export default async function ProductPage({
   return (
     <div>
       <RecordRecentlyViewed productId={product.id} />
+      <div className="mx-auto max-w-7xl px-3 pt-4">
+        <Breadcrumb
+          items={[
+            { label: product.category.name, href: `/c/${product.category.slug}` },
+            { label: product.title },
+          ]}
+        />
+      </div>
       <ProductDetail
         signedIn={!!user}
         initialWishlistedVariantIds={wishlistedVariantIds}

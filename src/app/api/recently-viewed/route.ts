@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recordProductView } from "@/lib/recently-viewed";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/recently-viewed", async (req: NextRequest) => {
   const body = await req.json().catch(() => null);
   const productId = typeof body?.productId === "string" ? body.productId : "";
   if (!productId) {
@@ -19,4 +20,4 @@ export async function POST(req: NextRequest) {
 
   await recordProductView(productId);
   return NextResponse.json({ ok: true });
-}
+});

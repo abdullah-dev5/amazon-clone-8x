@@ -4,24 +4,23 @@ import { db } from "@/lib/db";
 import { recomputeProductRating } from "@/lib/reviews";
 import { updateReviewSchema } from "@/lib/validation/review";
 import { parseRequestBody } from "@/lib/validation/helpers";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ reviewId: string }> }
-) {
-  const user = await requireUser().catch(() => null);
-  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+export const PATCH = withApiErrorLogging(
+  "PATCH /api/reviews/[reviewId]",
+  async (req: NextRequest, { params }: { params: Promise<{ reviewId: string }> }) => {
+    const user = await requireUser().catch(() => null);
+    if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
-  const { reviewId } = await params;
-  const owned = await db.review.findFirst({ where: { id: reviewId, userId: user.id } });
-  if (!owned) return NextResponse.json({ error: "Review not found." }, { status: 404 });
+    const { reviewId } = await params;
+    const owned = await db.review.findFirst({ where: { id: reviewId, userId: user.id } });
+    if (!owned) return NextResponse.json({ error: "Review not found." }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
-  const parsed = parseRequestBody(updateReviewSchema, body);
-  if (!parsed.success) return parsed.response;
-  const { rating, title, body: reviewBody } = parsed.data;
+    const body = await req.json().catch(() => null);
+    const parsed = parseRequestBody(updateReviewSchema, body);
+    if (!parsed.success) return parsed.response;
+    const { rating, title, body: reviewBody } = parsed.data;
 
-  try {
     const updated = await db.$transaction(async (tx) => {
       const review = await tx.review.update({
         where: { id: reviewId },
@@ -31,31 +30,23 @@ export async function PATCH(
       return review;
     });
     return NextResponse.json(updated);
-  } catch (err) {
-    console.error("PATCH /api/reviews/[reviewId]: unexpected error", err);
-    return NextResponse.json({ error: "Something went wrong updating your review." }, { status: 500 });
   }
-}
+);
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ reviewId: string }> }
-) {
-  const user = await requireUser().catch(() => null);
-  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+export const DELETE = withApiErrorLogging(
+  "DELETE /api/reviews/[reviewId]",
+  async (_req: NextRequest, { params }: { params: Promise<{ reviewId: string }> }) => {
+    const user = await requireUser().catch(() => null);
+    if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
-  const { reviewId } = await params;
-  const owned = await db.review.findFirst({ where: { id: reviewId, userId: user.id } });
-  if (!owned) return NextResponse.json({ error: "Review not found." }, { status: 404 });
+    const { reviewId } = await params;
+    const owned = await db.review.findFirst({ where: { id: reviewId, userId: user.id } });
+    if (!owned) return NextResponse.json({ error: "Review not found." }, { status: 404 });
 
-  try {
     await db.$transaction(async (tx) => {
       await tx.review.delete({ where: { id: reviewId } });
       await recomputeProductRating(tx, owned.productId);
     });
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("DELETE /api/reviews/[reviewId]: unexpected error", err);
-    return NextResponse.json({ error: "Something went wrong deleting your review." }, { status: 500 });
   }
-}
+);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const STORAGE_KEY = "amazonw_recent_searches";
 const MAX_RECENT_SEARCHES = 5;
@@ -34,21 +35,23 @@ function recordSearch(term: string) {
   writeRecentSearches([trimmed, ...deduped].slice(0, MAX_RECENT_SEARCHES));
 }
 
+// The search form does a real (non-intercepted) GET submit so it keeps
+// working without JS — which means a full page load on every search,
+// remounting this component and resetting its state. Read the query back
+// from the URL as the initial state (not a post-mount effect) so a
+// completed search doesn't render as empty for a frame before correcting
+// itself.
+function initialQueryFromUrl() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("k") ?? "";
+}
+
 export function SearchBar() {
-  const [query, setQuery] = useState("");
+  const router = useRouter();
+  const [query, setQuery] = useState(initialQueryFromUrl);
   const [recent, setRecent] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // The search form does a real (non-intercepted) GET submit so it keeps
-  // working without JS — which means a full page load on every search,
-  // remounting this component and resetting its state. Restore the box's
-  // contents from the URL so a completed search doesn't look like it never
-  // happened.
-  useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get("k");
-    if (k) setQuery(k);
-  }, []);
 
   function openDropdown() {
     setRecent(readRecentSearches());
@@ -76,7 +79,7 @@ export function SearchBar() {
     setQuery(term);
     setOpen(false);
     recordSearch(term);
-    window.location.assign(`/s?k=${encodeURIComponent(term)}`);
+    router.push(`/s?k=${encodeURIComponent(term)}`);
   }
 
   function clearRecent(e: React.MouseEvent) {

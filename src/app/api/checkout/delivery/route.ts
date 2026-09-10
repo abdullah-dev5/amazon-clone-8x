@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { getDeliveryOption, setCheckoutState } from "@/lib/checkout";
+import { withApiErrorLogging } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
+export const POST = withApiErrorLogging("POST /api/checkout/delivery", async (req: NextRequest) => {
   const user = await requireUser().catch(() => null);
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
@@ -15,4 +16,4 @@ export async function POST(req: NextRequest) {
 
   await setCheckoutState({ deliveryOptionId });
   return NextResponse.json({ deliveryOptionId });
-}
+});

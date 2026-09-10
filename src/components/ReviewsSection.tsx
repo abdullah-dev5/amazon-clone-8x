@@ -34,15 +34,17 @@ export function ReviewsSection({
   return (
     <section className="mx-auto max-w-7xl px-3 py-8 border-t border-gray-200 grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
       <div>
-        <h2 className="text-lg font-bold text-gray-900 mb-2">Customer reviews</h2>
+        <h2 className="text-lg font-bold text-gray-900 mb-2" id="reviews">
+          Customer reviews
+        </h2>
         <div className="flex items-center gap-2 mb-4">
-          <StarRating rating={rating} size="md" />
+          <StarRating rating={rating} size="md" showValue />
           <span className="text-sm text-gray-600">{reviews.length} global ratings</span>
         </div>
         <div className="space-y-1">
           {distribution.map((d) => (
             <div key={d.star} className="flex items-center gap-2 text-sm">
-              <span className="w-16 text-blue-700">{d.star} star</span>
+              <span className="w-16 text-gray-600">{d.star} star</span>
               <div className="flex-1 h-3 rounded bg-gray-200 overflow-hidden">
                 <div className="h-full bg-amber-400" style={{ width: `${d.pct}%` }} />
               </div>
