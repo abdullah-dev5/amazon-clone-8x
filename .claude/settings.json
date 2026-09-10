@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/capture.js\" \"${CLAUDE_PROJECT_DIR}\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/capture.js\" \"${CLAUDE_PROJECT_DIR}\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

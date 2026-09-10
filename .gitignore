@@ -1,0 +1,3 @@
+.claude/.capture-state/
+.claude/scheduled_tasks.lock
+node_modules/
