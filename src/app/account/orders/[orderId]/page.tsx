@@ -39,7 +39,7 @@ export default async function OrderDetailPage({
         {order.placedAt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
       </p>
 
-      <div className="rounded-lg border border-gray-300 p-4 mb-4">
+      <div className="rounded-lg border border-gray-200 p-4 mb-4">
         <div className="mb-4">
           <OrderStatusTracker status={displayStatus} />
         </div>
@@ -62,7 +62,7 @@ export default async function OrderDetailPage({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-300 divide-y mb-4">
+      <div className="rounded-lg border border-gray-200 divide-y">
         {order.items.map((item) => (
           <div key={item.id} className="p-4 flex gap-4">
             <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded bg-gray-100">
@@ -81,30 +81,29 @@ export default async function OrderDetailPage({
             </p>
           </div>
         ))}
-      </div>
-
-      <div className="rounded-lg border border-gray-300 p-4 text-sm space-y-1 max-w-xs ml-auto">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Subtotal:</span>
-          <span>{formatPrice(order.subtotalCents)}</span>
-        </div>
-        {order.discountCents > 0 && (
-          <div className="flex justify-between text-green-700">
-            <span>Coupon {order.couponCode}:</span>
-            <span>-{formatPrice(order.discountCents)}</span>
+        <div className="bg-gray-50 p-4 text-sm space-y-1">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Subtotal:</span>
+            <span>{formatPrice(order.subtotalCents)}</span>
           </div>
-        )}
-        <div className="flex justify-between">
-          <span className="text-gray-600">Shipping:</span>
-          <span>{order.shippingCents === 0 ? "FREE" : formatPrice(order.shippingCents)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Tax:</span>
-          <span>{formatPrice(order.taxCents)}</span>
-        </div>
-        <div className="flex justify-between font-bold border-t pt-1">
-          <span>Total:</span>
-          <span>{formatPrice(order.totalCents)}</span>
+          {order.discountCents > 0 && (
+            <div className="flex justify-between text-green-700">
+              <span>Coupon {order.couponCode}:</span>
+              <span>-{formatPrice(order.discountCents)}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-gray-600">Shipping:</span>
+            <span>{order.shippingCents === 0 ? "FREE" : formatPrice(order.shippingCents)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Tax:</span>
+            <span>{formatPrice(order.taxCents)}</span>
+          </div>
+          <div className="flex justify-between font-bold border-t border-gray-300 pt-1">
+            <span>Total:</span>
+            <span>{formatPrice(order.totalCents)}</span>
+          </div>
         </div>
       </div>
     </div>

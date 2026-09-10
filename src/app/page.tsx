@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { getRecentlyViewedProducts, toProductCardData } from "@/lib/catalog";
 import { getRecentlyViewedIds } from "@/lib/recently-viewed";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductCarousel } from "@/components/ProductCarousel";
+import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +33,7 @@ export default async function HomePage() {
           <p className="text-slate-200 mb-4">
             Explore deals across electronics, home, fashion, and more.
           </p>
-          <Link
-            href="/c/electronics"
-            className="inline-block rounded bg-amber-400 px-5 py-2 font-semibold text-gray-900 hover:bg-amber-300"
-          >
+          <Link href="/c/electronics" className={buttonVariants({ size: "lg" })}>
             Shop now
           </Link>
         </div>
@@ -67,11 +66,7 @@ export default async function HomePage() {
       {recentlyViewed.length > 0 && (
         <section className="rounded-lg border border-gray-200 bg-white p-4">
           <h2 className="text-lg font-bold text-gray-900 mb-3">Recently viewed</h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {recentlyViewed.map((p) => (
-              <ProductCard key={p.slug} product={p} />
-            ))}
-          </div>
+          <ProductCarousel products={recentlyViewed} />
         </section>
       )}
 

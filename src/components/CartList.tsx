@@ -3,8 +3,11 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { useCartStore } from "@/lib/cart-store";
+import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/EmptyState";
 import type { CartLineView, CartView } from "@/lib/cart";
 
 export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
@@ -65,12 +68,12 @@ export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
 
   if (lines.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 p-10 text-center">
-        <p className="text-lg font-medium text-gray-800 mb-2">Your cart is empty</p>
-        <Link href="/" className="text-blue-700 hover:underline">
-          Continue shopping
-        </Link>
-      </div>
+      <EmptyState
+        icon={<ShoppingCart className="h-10 w-10" />}
+        title="Your cart is empty"
+        actionHref="/"
+        actionLabel="Continue shopping"
+      />
     );
   }
 
@@ -106,7 +109,7 @@ export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
                     value={line.quantity}
                     onChange={(e) => updateQuantity(line.variantId, Number(e.target.value))}
                     disabled={isPending}
-                    className="rounded border border-gray-300 px-1.5 py-0.5"
+                    className="rounded border border-gray-400 px-1.5 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                   >
                     {Array.from({ length: Math.min(10, line.stock) }, (_, i) => i + 1).map((n) => (
                       <option key={n} value={n}>
@@ -136,10 +139,7 @@ export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
           Subtotal ({itemCount} item{itemCount === 1 ? "" : "s"}):{" "}
           <span className="font-bold">{formatPrice(subtotalCents)}</span>
         </p>
-        <Link
-          href="/checkout/address"
-          className="block w-full rounded-full bg-amber-400 py-2 text-center font-medium text-gray-900 hover:bg-amber-300"
-        >
+        <Link href="/checkout/address" className={buttonVariants({ className: "w-full" })}>
           Proceed to checkout
         </Link>
       </div>

@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { couponCodeSchema } from "@/lib/validation/coupon";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function CouponForm({
   appliedCode,
@@ -79,24 +82,20 @@ export function CouponForm({
         </p>
       )}
       <form onSubmit={apply} className="flex gap-2">
-        <label htmlFor="coupon-code" className="sr-only">
+        <Label htmlFor="coupon-code" className="sr-only">
           Coupon code
-        </label>
-        <input
+        </Label>
+        <Input
           id="coupon-code"
           type="text"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="Enter a coupon code"
-          className="min-w-0 flex-1 rounded border border-gray-400 px-2 py-1 text-sm"
+          className="min-w-0 flex-1"
         />
-        <button
-          type="submit"
-          disabled={submitting || !code.trim()}
-          className="shrink-0 rounded border border-gray-400 px-3 py-1 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50"
-        >
+        <Button type="submit" variant="outline" size="sm" disabled={submitting || !code.trim()} className="shrink-0">
           {submitting ? "Applying…" : "Apply"}
-        </button>
+        </Button>
       </form>
       {error && (
         <p role="alert" className="mt-1 text-xs text-red-600">

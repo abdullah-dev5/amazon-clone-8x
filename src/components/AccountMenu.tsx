@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { buttonVariants } from "@/components/ui/button";
 
 export function AccountMenu({ userName }: { userName: string | null }) {
   const router = useRouter();
@@ -18,12 +19,9 @@ export function AccountMenu({ userName }: { userName: string | null }) {
         <div className="text-xs">{userName ? `Hello, ${userName.split(" ")[0]}` : "Hello, sign in"}</div>
         <div className="font-bold text-sm">Account &amp; Lists</div>
       </summary>
-      <div className="absolute right-0 z-20 mt-1 w-64 rounded border border-gray-300 bg-white text-gray-900 shadow-lg p-4">
+      <div className="absolute right-0 z-20 mt-1 w-64 rounded border border-gray-200 bg-white text-gray-900 shadow-lg p-4">
         {!userName && (
-          <Link
-            href="/signin"
-            className="block w-full text-center rounded bg-amber-400 py-1.5 font-medium text-sm hover:bg-amber-300"
-          >
+          <Link href="/signin" className={buttonVariants({ size: "sm", className: "w-full" })}>
             Sign in
           </Link>
         )}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import type { DeliveryOption } from "@/lib/checkout";
 
 export function DeliveryStepForm({
@@ -36,7 +37,7 @@ export function DeliveryStepForm({
 
   return (
     <div className="max-w-2xl space-y-4">
-      <div className="rounded-lg border border-gray-300 divide-y">
+      <div className="rounded-lg border border-gray-200 divide-y">
         {options.map((o) => (
           <label key={o.id} className="flex items-start justify-between gap-3 p-4 cursor-pointer">
             <div className="flex items-start gap-3">
@@ -45,7 +46,7 @@ export function DeliveryStepForm({
                 name="delivery"
                 checked={choice === o.id}
                 onChange={() => setChoice(o.id)}
-                className="mt-1"
+                className="mt-1 accent-amber-400"
               />
               <div>
                 <p className="font-medium text-gray-900">{o.label}</p>
@@ -58,14 +59,14 @@ export function DeliveryStepForm({
           </label>
         ))}
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        onClick={submit}
-        disabled={submitting}
-        className="rounded-full bg-amber-400 px-5 py-1.5 font-medium text-gray-900 hover:bg-amber-300 disabled:opacity-50"
-      >
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      <Button onClick={submit} disabled={submitting}>
         Continue to payment
-      </button>
+      </Button>
     </div>
   );
 }

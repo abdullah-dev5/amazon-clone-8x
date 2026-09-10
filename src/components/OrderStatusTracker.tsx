@@ -1,6 +1,7 @@
 import type { DisplayOrderStatus } from "@/lib/order-status";
+import { StepIndicator, type Step } from "@/components/StepIndicator";
 
-const STAGES: { id: DisplayOrderStatus; label: string }[] = [
+const STAGES: Step[] = [
   { id: "PLACED", label: "Placed" },
   { id: "PROCESSING", label: "Processing" },
   { id: "SHIPPED", label: "Shipped" },
@@ -17,41 +18,10 @@ export function OrderStatusTracker({ status }: { status: DisplayOrderStatus }) {
     );
   }
 
-  const currentIndex = STAGES.findIndex((s) => s.id === status);
-
-  return (
-    <div
-      role="group"
-      aria-label={`Order status: ${STAGES[currentIndex]?.label ?? status}`}
-      className="flex items-start"
-    >
-      {STAGES.map((stage, i) => (
-        <div key={stage.id} className="flex flex-1 items-center last:flex-none">
-          <div className="flex flex-col items-center gap-1.5">
-            <div
-              aria-hidden="true"
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                i <= currentIndex ? "bg-green-600 text-white" : "bg-gray-200 text-gray-500"
-              }`}
-            >
-              {i < currentIndex ? "✓" : i + 1}
-            </div>
-            <span
-              className={`text-xs text-center whitespace-nowrap ${
-                i === currentIndex ? "font-semibold text-gray-900" : i < currentIndex ? "text-gray-700" : "text-gray-400"
-              }`}
-            >
-              {stage.label}
-            </span>
-          </div>
-          {i < STAGES.length - 1 && (
-            <div
-              aria-hidden="true"
-              className={`mx-1.5 h-0.5 flex-1 ${i < currentIndex ? "bg-green-600" : "bg-gray-200"}`}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
+  // Delivered is a completed state, not an "in progress" one — unlike
+  // checkout (where the current step is always still-to-be-submitted),
+  // pointing currentIndex one past the end here means every stage
+  // (including the last) renders as done/checked rather than "current."
+  const currentIndex = status === "DELIVERED" ? STAGES.length : STAGES.findIndex((s) => s.id === status);
+  return <StepIndicator steps={STAGES} currentIndex={currentIndex} />;
 }

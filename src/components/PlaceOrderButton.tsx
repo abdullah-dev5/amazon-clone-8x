@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function PlaceOrderButton() {
   const router = useRouter();
@@ -23,14 +24,14 @@ export function PlaceOrderButton() {
 
   return (
     <div className="space-y-2">
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button
-        onClick={placeOrder}
-        disabled={submitting}
-        className="w-full rounded-full bg-amber-400 py-2 font-medium text-gray-900 hover:bg-amber-300 disabled:opacity-50"
-      >
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      <Button onClick={placeOrder} disabled={submitting} className="w-full">
         {submitting ? "Placing your order…" : "Place your order"}
-      </button>
+      </Button>
     </div>
   );
 }

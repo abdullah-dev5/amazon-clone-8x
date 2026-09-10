@@ -3,8 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { useCartStore } from "@/lib/cart-store";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/EmptyState";
 
 export type WishlistLine = {
   variantId: string;
@@ -58,12 +61,12 @@ export function WishlistList({ initialLines }: { initialLines: WishlistLine[] })
 
   if (lines.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 p-10 text-center">
-        <p className="text-gray-700 mb-2">Your wishlist is empty.</p>
-        <Link href="/" className="text-blue-700 hover:underline">
-          Browse products
-        </Link>
-      </div>
+      <EmptyState
+        icon={<Heart className="h-10 w-10" />}
+        title="Your wishlist is empty"
+        actionHref="/"
+        actionLabel="Browse products"
+      />
     );
   }
 
@@ -87,13 +90,14 @@ export function WishlistList({ initialLines }: { initialLines: WishlistLine[] })
             </Link>
             <p className="text-xs text-gray-500">{line.variantName}</p>
             <p className="font-semibold text-gray-900">{formatPrice(line.priceCents)}</p>
-            <button
+            <Button
+              size="sm"
               onClick={() => moveToCart(line.variantId)}
               disabled={!line.inStock || movingId === line.variantId}
-              className="w-full rounded-full bg-amber-400 py-1.5 text-sm font-medium text-gray-900 hover:bg-amber-300 disabled:opacity-50"
+              className="w-full"
             >
               {line.inStock ? (movingId === line.variantId ? "Moving…" : "Move to Cart") : "Out of Stock"}
-            </button>
+            </Button>
             <button
               onClick={() => remove(line.variantId)}
               className="text-xs text-blue-700 hover:underline"

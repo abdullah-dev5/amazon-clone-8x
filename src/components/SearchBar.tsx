@@ -106,7 +106,7 @@ export function SearchBar() {
       </form>
 
       {open && recent.length > 0 && (
-        <div className="absolute left-0 right-12 top-full z-40 mt-1 rounded-md border border-gray-300 bg-white shadow-lg text-gray-900">
+        <div className="absolute left-0 right-12 top-full z-40 mt-1 rounded-md border border-gray-200 bg-white shadow-lg text-gray-900">
           <ul className="py-1">
             {recent.map((term) => (
               <li key={term}>

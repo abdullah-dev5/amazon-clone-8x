@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Heart } from "lucide-react";
 import { StarRating } from "@/components/StarRating";
 import { PriceTag } from "@/components/PriceTag";
+import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/lib/cart-store";
 
 export type VariantData = {
@@ -192,7 +194,7 @@ export function ProductDetail({
                 id="qty"
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className="rounded border border-gray-300 px-2 py-1"
+                className="rounded border border-gray-400 px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
               >
                 {Array.from({ length: Math.min(10, selected?.stock ?? 1) }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>
@@ -203,37 +205,24 @@ export function ProductDetail({
             </div>
           )}
 
-          <button
-            onClick={addToCart}
-            disabled={!inStock || status === "adding"}
-            className="w-full rounded-full bg-amber-400 py-2 font-medium text-gray-900 hover:bg-amber-300 disabled:opacity-50"
-          >
+          <Button onClick={addToCart} disabled={!inStock || status === "adding"} className="w-full">
             {status === "adding" ? "Adding…" : status === "added" ? "Added ✓" : "Add to Cart"}
-          </button>
-          <button
-            onClick={buyNow}
-            disabled={!inStock || status === "adding"}
-            className="w-full rounded-full bg-orange-500 py-2 font-medium text-white hover:bg-orange-400 disabled:opacity-50"
-          >
+          </Button>
+          <Button onClick={buyNow} disabled={!inStock || status === "adding"} variant="accent" className="w-full">
             Buy Now
-          </button>
+          </Button>
           {errorMessage && (
-            <p className={`text-sm ${status === "error" ? "text-red-600" : "text-amber-700"}`}>
+            <p role="alert" className={`text-sm ${status === "error" ? "text-red-600" : "text-amber-700"}`}>
               {errorMessage}
             </p>
           )}
+          {/* Deliberately lighter weight than the two CTAs above it — a
+              save-for-later action shouldn't compete with the purchase path. */}
           <button
             onClick={toggleWishlist}
-            className="w-full rounded-full border border-gray-400 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-1.5"
+            className="flex w-full items-center justify-center gap-1.5 py-1.5 text-sm text-gray-600 hover:text-gray-900"
           >
-            <svg
-              viewBox="0 0 24 24"
-              className={`h-4 w-4 ${isWishlisted ? "fill-red-500 text-red-500" : "fill-none text-gray-500"}`}
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path d="M12 21s-7.5-4.6-10-9.3C0.3 7.9 2.4 4 6.2 4c2 0 3.6 1.1 4.8 2.9C12.2 5.1 13.8 4 15.8 4 19.6 4 21.7 7.9 22 11.7 19.5 16.4 12 21 12 21z" strokeLinejoin="round" />
-            </svg>
+            <Heart className={`h-4 w-4 ${isWishlisted ? "fill-red-500 text-red-500" : "text-gray-400"}`} strokeWidth={2} />
             {isWishlisted ? "Saved to Wishlist" : "Add to Wishlist"}
           </button>
         </div>

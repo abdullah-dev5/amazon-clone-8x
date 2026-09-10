@@ -1,10 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Package } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
 import { deriveDisplayStatus, displayStatusBadgeClasses, displayStatusLabel } from "@/lib/order-status";
+import { EmptyState } from "@/components/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -23,18 +25,18 @@ export default async function OrdersPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-4">Your Orders</h1>
 
       {orders.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 p-10 text-center">
-          <p className="text-gray-700 mb-2">You haven&apos;t placed any orders yet.</p>
-          <Link href="/" className="text-blue-700 hover:underline">
-            Start shopping
-          </Link>
-        </div>
+        <EmptyState
+          icon={<Package className="h-10 w-10" />}
+          title="You haven't placed any orders yet"
+          actionHref="/"
+          actionLabel="Start shopping"
+        />
       ) : (
         <div className="space-y-4">
           {orders.map((order) => {
             const displayStatus = deriveDisplayStatus(order);
             return (
-            <div key={order.id} className="rounded-lg border border-gray-300">
+            <div key={order.id} className="rounded-lg border border-gray-200">
               <div className="flex flex-wrap justify-between gap-3 bg-gray-50 px-4 py-3 text-sm border-b border-gray-200">
                 <div>
                   <p className="text-gray-500">Order placed</p>
