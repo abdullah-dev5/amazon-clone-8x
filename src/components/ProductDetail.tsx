@@ -28,19 +28,52 @@ export type ProductDetailData = {
   variants: VariantData[];
 };
 
-export function ProductDetail({ product }: { product: ProductDetailData }) {
+export function ProductDetail({
+  product,
+  initialWishlistedVariantIds = [],
+  signedIn,
+}: {
+  product: ProductDetailData;
+  initialWishlistedVariantIds?: string[];
+  signedIn: boolean;
+}) {
   const router = useRouter();
   const defaultVariant =
     product.variants.find((v) => v.isDefault) ?? product.variants[0];
   const [selectedId, setSelectedId] = useState(defaultVariant?.id);
   const [quantity, setQuantity] = useState(1);
   const [status, setStatus] = useState<"idle" | "adding" | "added" | "error">("idle");
+  const [wishlisted, setWishlisted] = useState(new Set(initialWishlistedVariantIds));
 
   const selected = product.variants.find((v) => v.id === selectedId) ?? defaultVariant;
   const isMultiVariant = product.variants.length > 1;
   const heroImage = selected?.imageUrl ?? product.images[0];
   const inStock = (selected?.stock ?? 0) > 0;
   const setItemCount = useCartStore((s) => s.setItemCount);
+  const isWishlisted = !!selected && wishlisted.has(selected.id);
+
+  async function toggleWishlist() {
+    if (!selected) return;
+    if (!signedIn) {
+      router.push(`/signin?next=/product/${product.slug}`);
+      return;
+    }
+    const variantId = selected.id;
+    const next = new Set(wishlisted);
+    if (next.has(variantId)) {
+      next.delete(variantId);
+      setWishlisted(next);
+      await fetch(`/api/wishlist/${variantId}`, { method: "DELETE" });
+    } else {
+      next.add(variantId);
+      setWishlisted(next);
+      await fetch("/api/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variantId }),
+      });
+    }
+  }
 
   async function addToCart() {
     if (!selected) return;
@@ -62,7 +95,7 @@ export function ProductDetail({ product }: { product: ProductDetailData }) {
 
   async function buyNow() {
     await addToCart();
-    router.push("/cart");
+    router.push("/checkout/address");
   }
 
   return (
@@ -177,6 +210,20 @@ export function ProductDetail({ product }: { product: ProductDetailData }) {
           {status === "error" && (
             <p className="text-sm text-red-600">Something went wrong adding this to your cart.</p>
           )}
+          <button
+            onClick={toggleWishlist}
+            className="w-full rounded-full border border-gray-400 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-1.5"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className={`h-4 w-4 ${isWishlisted ? "fill-red-500 text-red-500" : "fill-none text-gray-500"}`}
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path d="M12 21s-7.5-4.6-10-9.3C0.3 7.9 2.4 4 6.2 4c2 0 3.6 1.1 4.8 2.9C12.2 5.1 13.8 4 15.8 4 19.6 4 21.7 7.9 22 11.7 19.5 16.4 12 21 12 21z" strokeLinejoin="round" />
+            </svg>
+            {isWishlisted ? "Saved to Wishlist" : "Add to Wishlist"}
+          </button>
         </div>
       </div>
     </div>

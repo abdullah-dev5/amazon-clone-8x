@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ProductDetail } from "@/components/ProductDetail";
 import { ReviewsSection } from "@/components/ReviewsSection";
@@ -12,21 +13,38 @@ export default async function ProductPage({
 }) {
   const { slug } = await params;
 
-  const product = await db.product.findUnique({
-    where: { slug },
-    include: {
-      variants: true,
-      reviews: { orderBy: { createdAt: "desc" } },
-    },
-  });
+  const [product, user] = await Promise.all([
+    db.product.findUnique({
+      where: { slug },
+      include: {
+        variants: true,
+        reviews: { orderBy: { createdAt: "desc" } },
+      },
+    }),
+    getCurrentUser(),
+  ]);
 
   if (!product) notFound();
 
   const images: string[] = JSON.parse(product.images);
 
+  let wishlistedVariantIds: string[] = [];
+  if (user) {
+    const wishlist = await db.wishlist.findUnique({
+      where: { userId: user.id },
+      include: { items: true },
+    });
+    const variantIds = new Set(product.variants.map((v) => v.id));
+    wishlistedVariantIds = (wishlist?.items ?? [])
+      .filter((i) => variantIds.has(i.variantId))
+      .map((i) => i.variantId);
+  }
+
   return (
     <div>
       <ProductDetail
+        signedIn={!!user}
+        initialWishlistedVariantIds={wishlistedVariantIds}
         product={{
           slug: product.slug,
           title: product.title,
