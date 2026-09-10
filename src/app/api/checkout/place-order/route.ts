@@ -71,13 +71,29 @@ export const POST = withApiErrorLogging("POST /api/checkout/place-order", async 
       }[] = [];
       for (const line of cart.lines) {
         const variant = await tx.productVariant.findUniqueOrThrow({ where: { id: line.variantId } });
-        if (variant.stock < line.quantity) {
-          throw new InsufficientStockError(line.productTitle, line.variantName);
-        }
-        await tx.productVariant.update({
-          where: { id: line.variantId },
+
+        // The stock check and the decrement must happen as a single atomic
+        // conditional UPDATE, not a separate read-then-write — under
+        // Postgres's default READ COMMITTED isolation, two concurrent
+        // transactions can both read the same not-yet-decremented stock
+        // value before either commits, both pass a plain `if` check, and
+        // both decrement, overselling. A WHERE clause on the UPDATE itself
+        // is what actually serializes this: Postgres takes a row lock to
+        // evaluate and apply the WHERE + SET together, so a second
+        // concurrent UPDATE on the same row blocks until the first
+        // commits or rolls back, then re-evaluates against the real
+        // post-commit value. (This bug was invisible under SQLite, which
+        // serializes concurrent writes via its own file-level locking
+        // regardless of application logic — confirmed by testing this
+        // exact scenario against a real Postgres database, where it
+        // reproduced consistently before this fix.)
+        const decremented = await tx.productVariant.updateMany({
+          where: { id: line.variantId, stock: { gte: line.quantity } },
           data: { stock: { decrement: line.quantity } },
         });
+        if (decremented.count === 0) {
+          throw new InsufficientStockError(line.productTitle, line.variantName);
+        }
         subtotalCents += variant.priceCents * line.quantity;
         itemsData.push({
           variantId: line.variantId,
