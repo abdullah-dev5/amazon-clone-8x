@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { getRelatedProducts } from "@/lib/catalog";
 import { db } from "@/lib/db";
 import { ProductDetail } from "@/components/ProductDetail";
+import { RecordRecentlyViewed } from "@/components/RecordRecentlyViewed";
+import { RelatedProducts } from "@/components/RelatedProducts";
 import { ReviewsSection } from "@/components/ReviewsSection";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +29,8 @@ export default async function ProductPage({
 
   if (!product) notFound();
 
+  const relatedProducts = await getRelatedProducts(product);
+
   const images: string[] = JSON.parse(product.images);
 
   let wishlistedVariantIds: string[] = [];
@@ -42,6 +47,7 @@ export default async function ProductPage({
 
   return (
     <div>
+      <RecordRecentlyViewed productId={product.id} />
       <ProductDetail
         signedIn={!!user}
         initialWishlistedVariantIds={wishlistedVariantIds}
@@ -75,6 +81,7 @@ export default async function ProductPage({
           createdAt: r.createdAt.toISOString(),
         }))}
       />
+      <RelatedProducts products={relatedProducts} />
     </div>
   );
 }

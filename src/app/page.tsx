@@ -1,42 +1,27 @@
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { ProductCard, type ProductCardData } from "@/components/ProductCard";
+import { getRecentlyViewedProducts, toProductCardData } from "@/lib/catalog";
+import { getRecentlyViewedIds } from "@/lib/recently-viewed";
+import { ProductCard } from "@/components/ProductCard";
 
 export const dynamic = "force-dynamic";
 
-function toCardData(product: {
-  slug: string;
-  title: string;
-  rating: number;
-  reviewCount: number;
-  images: string;
-  variants: { priceCents: number; compareAtCents: number | null; imageUrl: string | null; isDefault: boolean }[];
-}): ProductCardData {
-  const defaultVariant = product.variants.find((v) => v.isDefault) ?? product.variants[0];
-  const images: string[] = JSON.parse(product.images);
-  return {
-    slug: product.slug,
-    title: product.title,
-    rating: product.rating,
-    reviewCount: product.reviewCount,
-    imageUrl: defaultVariant?.imageUrl ?? images[0],
-    priceCents: defaultVariant?.priceCents ?? 0,
-    compareAtCents: defaultVariant?.compareAtCents ?? null,
-  };
-}
-
 export default async function HomePage() {
-  const categories = await db.category.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      products: {
-        orderBy: { createdAt: "asc" },
-        take: 4,
-        include: { variants: true },
+  const [categories, recentlyViewedIds] = await Promise.all([
+    db.category.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        products: {
+          orderBy: { createdAt: "asc" },
+          take: 4,
+          include: { variants: true },
+        },
       },
-    },
-  });
+    }),
+    getRecentlyViewedIds(),
+  ]);
+  const recentlyViewed = await getRecentlyViewedProducts(recentlyViewedIds);
 
   return (
     <div className="mx-auto max-w-7xl px-3 py-4 space-y-6">
@@ -79,6 +64,17 @@ export default async function HomePage() {
         ))}
       </section>
 
+      {recentlyViewed.length > 0 && (
+        <section className="rounded-lg border border-gray-200 bg-white p-4">
+          <h2 className="text-lg font-bold text-gray-900 mb-3">Recently viewed</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {recentlyViewed.map((p) => (
+              <ProductCard key={p.slug} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {categories.map((c) => (
         <section key={c.id} className="rounded-lg border border-gray-200 bg-white p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -89,7 +85,7 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {c.products.map((p) => (
-              <ProductCard key={p.id} product={toCardData(p)} />
+              <ProductCard key={p.id} product={toProductCardData(p)} />
             ))}
           </div>
         </section>
