@@ -116,6 +116,7 @@ export function AddressStepForm({
         <form onSubmit={submitNew} className="rounded-lg border border-gray-300 p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
+              aria-label="Full name"
               placeholder="Full name"
               required
               value={form.fullName}
@@ -123,6 +124,7 @@ export function AddressStepForm({
               className="rounded border border-gray-400 px-3 py-1.5 sm:col-span-2"
             />
             <input
+              aria-label="Address line 1"
               placeholder="Address line 1"
               required
               value={form.line1}
@@ -130,12 +132,14 @@ export function AddressStepForm({
               className="rounded border border-gray-400 px-3 py-1.5 sm:col-span-2"
             />
             <input
+              aria-label="Address line 2 (optional)"
               placeholder="Address line 2 (optional)"
               value={form.line2}
               onChange={(e) => setForm({ ...form, line2: e.target.value })}
               className="rounded border border-gray-400 px-3 py-1.5 sm:col-span-2"
             />
             <input
+              aria-label="City"
               placeholder="City"
               required
               value={form.city}
@@ -143,6 +147,7 @@ export function AddressStepForm({
               className="rounded border border-gray-400 px-3 py-1.5"
             />
             <input
+              aria-label="State"
               placeholder="State"
               required
               value={form.state}
@@ -150,6 +155,7 @@ export function AddressStepForm({
               className="rounded border border-gray-400 px-3 py-1.5"
             />
             <input
+              aria-label="ZIP code"
               placeholder="ZIP code"
               required
               value={form.postalCode}
@@ -157,6 +163,7 @@ export function AddressStepForm({
               className="rounded border border-gray-400 px-3 py-1.5"
             />
             <input
+              aria-label="Phone (optional)"
               placeholder="Phone (optional)"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}

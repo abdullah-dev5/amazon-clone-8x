@@ -16,17 +16,19 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-30">
       <div className="bg-[#131921] text-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2">
           <Link href="/" className="shrink-0 rounded px-2 py-1 hover:outline hover:outline-white/40">
             <span className="text-xl font-bold tracking-tight">amazonw</span>
           </Link>
 
-          <div className="hidden md:flex flex-col justify-center px-2 py-1 rounded hover:outline hover:outline-white/40 cursor-pointer">
+          <div className="hidden md:flex shrink-0 flex-col justify-center px-2 py-1 rounded hover:outline hover:outline-white/40 cursor-pointer">
             <span className="text-xs text-gray-300">Deliver to</span>
             <span className="text-sm font-bold">Seattle 98109</span>
           </div>
 
-          <form action="/s" method="GET" className="flex flex-1 min-w-0">
+          {/* Full width on mobile so it gets its own row instead of being squeezed by the
+              other (non-shrinking) header items; inline and flexible from sm breakpoint up. */}
+          <form action="/s" method="GET" className="order-last w-full flex min-w-0 sm:order-none sm:w-auto sm:flex-1">
             <input
               type="text"
               name="k"
@@ -37,7 +39,7 @@ export async function Header() {
             <button
               type="submit"
               aria-label="Search"
-              className="rounded-r-md bg-amber-400 px-4 py-2 hover:bg-amber-300"
+              className="shrink-0 rounded-r-md bg-amber-400 px-4 py-2 hover:bg-amber-300"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5 text-gray-900" fill="currentColor">
                 <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z" />
@@ -45,17 +47,19 @@ export async function Header() {
             </button>
           </form>
 
-          <AccountMenu userName={user?.name ?? null} />
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0">
+            <AccountMenu userName={user?.name ?? null} />
 
-          <Link
-            href="/account/orders"
-            className="hidden sm:block px-2 py-1 rounded hover:outline hover:outline-white/40"
-          >
-            <div className="text-xs">Returns</div>
-            <div className="font-bold text-sm">&amp; Orders</div>
-          </Link>
+            <Link
+              href="/account/orders"
+              className="hidden sm:block px-2 py-1 rounded hover:outline hover:outline-white/40"
+            >
+              <div className="text-xs">Returns</div>
+              <div className="font-bold text-sm">&amp; Orders</div>
+            </Link>
 
-          <CartIcon initialCount={cart.itemCount} />
+            <CartIcon initialCount={cart.itemCount} />
+          </div>
         </div>
       </div>
 

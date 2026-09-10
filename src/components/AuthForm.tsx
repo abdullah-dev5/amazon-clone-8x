@@ -49,8 +49,9 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         <form onSubmit={onSubmit} className="space-y-4">
           {mode === "signup" && (
             <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1">Your name</label>
+              <label htmlFor="auth-name" className="block text-sm font-medium text-gray-800 mb-1">Your name</label>
               <input
+                id="auth-name"
                 type="text"
                 required
                 value={name}
@@ -60,8 +61,9 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-1">Email</label>
+            <label htmlFor="auth-email" className="block text-sm font-medium text-gray-800 mb-1">Email</label>
             <input
+              id="auth-email"
               type="email"
               required
               value={email}
@@ -70,8 +72,9 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-800 mb-1">Password</label>
+            <label htmlFor="auth-password" className="block text-sm font-medium text-gray-800 mb-1">Password</label>
             <input
+              id="auth-password"
               type="password"
               required
               minLength={mode === "signup" ? 8 : undefined}

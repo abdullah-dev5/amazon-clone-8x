@@ -43,8 +43,9 @@ export function PaymentStepForm() {
           never stored — only the last 4 digits are kept to show on your order.
         </p>
         <div>
-          <label className="block text-sm font-medium text-gray-800 mb-1">Name on card</label>
+          <label htmlFor="pay-name" className="block text-sm font-medium text-gray-800 mb-1">Name on card</label>
           <input
+            id="pay-name"
             required
             value={cardholderName}
             onChange={(e) => setCardholderName(e.target.value)}
@@ -52,8 +53,9 @@ export function PaymentStepForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-800 mb-1">Card number</label>
+          <label htmlFor="pay-number" className="block text-sm font-medium text-gray-800 mb-1">Card number</label>
           <input
+            id="pay-number"
             required
             inputMode="numeric"
             placeholder="4242 4242 4242 4242"
@@ -64,8 +66,9 @@ export function PaymentStepForm() {
         </div>
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-800 mb-1">Expiry (MM/YY)</label>
+            <label htmlFor="pay-expiry" className="block text-sm font-medium text-gray-800 mb-1">Expiry (MM/YY)</label>
             <input
+              id="pay-expiry"
               required
               placeholder="12/29"
               value={expiry}
@@ -74,8 +77,9 @@ export function PaymentStepForm() {
             />
           </div>
           <div className="w-24">
-            <label className="block text-sm font-medium text-gray-800 mb-1">CVV</label>
+            <label htmlFor="pay-cvv" className="block text-sm font-medium text-gray-800 mb-1">CVV</label>
             <input
+              id="pay-cvv"
               required
               inputMode="numeric"
               maxLength={4}
