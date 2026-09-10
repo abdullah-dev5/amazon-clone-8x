@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
+import { deriveDisplayStatus } from "@/lib/order-status";
+import { OrderStatusTracker } from "@/components/OrderStatusTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,8 @@ export default async function OrderDetailPage({
   });
   if (!order) notFound();
 
+  const displayStatus = deriveDisplayStatus(order);
+
   return (
     <div className="mx-auto max-w-3xl px-3 py-6">
       <Link href="/account/orders" className="text-sm text-blue-700 hover:underline">
@@ -36,9 +40,9 @@ export default async function OrderDetailPage({
       </p>
 
       <div className="rounded-lg border border-gray-300 p-4 mb-4">
-        <span className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 mb-3">
-          {order.status === "PLACED" ? "Order placed" : order.status}
-        </span>
+        <div className="mb-4">
+          <OrderStatusTracker status={displayStatus} />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <h2 className="font-semibold text-gray-900 mb-1">Shipping address</h2>

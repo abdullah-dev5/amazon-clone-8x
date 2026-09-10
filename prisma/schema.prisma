@@ -146,10 +146,17 @@ model WishlistItem {
   @@unique([wishlistId, variantId])
 }
 
+// Only PLACED and CANCELLED are ever actually written by app code today —
+// SHIPPED/DELIVERED exist for a future real fulfillment action but aren't
+// wired to one yet. The customer-facing progress shown for a PLACED order
+// (Processing/Shipped/Delivered) is derived at render time from elapsed
+// time since placedAt (see lib/order-status.ts) — deliberately never
+// itself written here, since there's no background job to drive it.
 enum OrderStatus {
   PLACED
   SHIPPED
   DELIVERED
+  CANCELLED
 }
 
 model Order {

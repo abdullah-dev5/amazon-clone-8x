@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
+import { deriveDisplayStatus, displayStatusBadgeClasses, displayStatusLabel } from "@/lib/order-status";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,9 @@ export default async function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => (
+          {orders.map((order) => {
+            const displayStatus = deriveDisplayStatus(order);
+            return (
             <div key={order.id} className="rounded-lg border border-gray-300">
               <div className="flex flex-wrap justify-between gap-3 bg-gray-50 px-4 py-3 text-sm border-b border-gray-200">
                 <div>
@@ -63,13 +66,14 @@ export default async function OrdersPage() {
                   </div>
                 ))}
                 <div className="ml-auto self-center">
-                  <span className="inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
-                    {order.status === "PLACED" ? "Order placed" : order.status}
+                  <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${displayStatusBadgeClasses(displayStatus)}`}>
+                    {displayStatusLabel(displayStatus)}
                   </span>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

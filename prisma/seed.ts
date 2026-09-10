@@ -761,7 +761,7 @@ async function main() {
     },
   });
 
-  await prisma.address.create({
+  const demoAddress = await prisma.address.create({
     data: {
       userId: demoUser.id,
       fullName: "Demo Shopper",
@@ -778,6 +778,81 @@ async function main() {
 
   await prisma.cart.create({ data: { userId: demoUser.id } });
   await prisma.wishlist.create({ data: { userId: demoUser.id } });
+
+  // A few backdated/cancelled demo orders so order-status tracking (which
+  // derives PROCESSING/SHIPPED/DELIVERED from elapsed time for a live
+  // order — see lib/order-status.ts) has something to show beyond
+  // "Placed" without needing to wait real time. A fresh order placed via
+  // checkout right now already demonstrates PLACED/PROCESSING on its own.
+  async function seedDemoOrder(opts: {
+    idempotencyKey: string;
+    productSlug: string;
+    quantity: number;
+    placedAt: Date;
+    status?: "PLACED" | "CANCELLED";
+  }) {
+    const variant = await prisma.productVariant.findFirstOrThrow({
+      where: { product: { slug: opts.productSlug }, isDefault: true },
+      include: { product: true },
+    });
+    const subtotalCents = variant.priceCents * opts.quantity;
+    const shippingCents = 0;
+    const taxCents = Math.round(subtotalCents * 0.08);
+    await prisma.order.create({
+      data: {
+        userId: demoUser.id,
+        idempotencyKey: opts.idempotencyKey,
+        status: opts.status ?? "PLACED",
+        addressId: demoAddress.id,
+        shipToName: demoAddress.fullName,
+        shipToLine1: demoAddress.line1,
+        shipToLine2: demoAddress.line2,
+        shipToCity: demoAddress.city,
+        shipToState: demoAddress.state,
+        shipToPostalCode: demoAddress.postalCode,
+        shipToCountry: demoAddress.country,
+        deliveryOption: "Standard Shipping (5-7 business days)",
+        subtotalCents,
+        shippingCents,
+        taxCents,
+        totalCents: subtotalCents + shippingCents + taxCents,
+        placedAt: opts.placedAt,
+        items: {
+          create: [
+            {
+              variantId: variant.id,
+              productTitle: variant.product.title,
+              variantName: variant.name,
+              imageUrl: variant.imageUrl,
+              unitPriceCents: variant.priceCents,
+              quantity: opts.quantity,
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  const now = Date.now();
+  await seedDemoOrder({
+    idempotencyKey: "seed-order-delivered",
+    productSlug: "audiora-noise-cancelling-over-ear-headphones",
+    quantity: 1,
+    placedAt: new Date(now - 3 * 24 * 60 * 60 * 1000), // 3 days ago -> Delivered
+  });
+  await seedDemoOrder({
+    idempotencyKey: "seed-order-shipped",
+    productSlug: "brewline-stainless-steel-french-press-34oz",
+    quantity: 1,
+    placedAt: new Date(now - 10 * 60 * 60 * 1000), // 10 hours ago -> Shipped
+  });
+  await seedDemoOrder({
+    idempotencyKey: "seed-order-cancelled",
+    productSlug: "sweepix-digital-air-fryer-6-quart",
+    quantity: 1,
+    placedAt: new Date(now - 24 * 60 * 60 * 1000),
+    status: "CANCELLED",
+  });
 
   const productCount = await prisma.product.count();
   const categoryCount = await prisma.category.count();
