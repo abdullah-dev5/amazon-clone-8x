@@ -1,0 +1,124 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { formatPrice } from "@/lib/format";
+import { useCartStore } from "@/lib/cart-store";
+import type { CartLineView } from "@/lib/cart";
+
+export function CartList({ initialLines }: { initialLines: CartLineView[] }) {
+  const [lines, setLines] = useState(initialLines);
+  const [isPending, startTransition] = useTransition();
+  const setItemCount = useCartStore((s) => s.setItemCount);
+
+  const subtotalCents = lines.reduce((sum, l) => sum + l.unitPriceCents * l.quantity, 0);
+  const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
+
+  async function updateQuantity(variantId: string, quantity: number) {
+    setLines((prev) =>
+      quantity <= 0
+        ? prev.filter((l) => l.variantId !== variantId)
+        : prev.map((l) => (l.variantId === variantId ? { ...l, quantity } : l))
+    );
+    startTransition(async () => {
+      const res = await fetch(`/api/cart/items/${variantId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity }),
+      });
+      if (res.ok) {
+        const cart = await res.json();
+        setItemCount(cart.itemCount);
+      }
+    });
+  }
+
+  async function removeItem(variantId: string) {
+    setLines((prev) => prev.filter((l) => l.variantId !== variantId));
+    startTransition(async () => {
+      const res = await fetch(`/api/cart/items/${variantId}`, { method: "DELETE" });
+      if (res.ok) {
+        const cart = await res.json();
+        setItemCount(cart.itemCount);
+      }
+    });
+  }
+
+  if (lines.length === 0) {
+    return (
+      <div className="rounded-lg border border-gray-200 p-10 text-center">
+        <p className="text-lg font-medium text-gray-800 mb-2">Your cart is empty</p>
+        <Link href="/" className="text-blue-700 hover:underline">
+          Continue shopping
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="rounded-lg border border-gray-200 divide-y divide-gray-200">
+        <div className="p-4 flex justify-between text-sm text-gray-600">
+          <span>{itemCount} item{itemCount === 1 ? "" : "s"} in cart</span>
+        </div>
+        {lines.map((line) => (
+          <div key={line.variantId} className="p-4 flex gap-4">
+            <Link href={`/product/${line.productSlug}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded bg-gray-100">
+              {line.imageUrl && (
+                <Image src={line.imageUrl} alt={line.productTitle} fill sizes="96px" className="object-cover" />
+              )}
+            </Link>
+            <div className="flex-1 min-w-0">
+              <Link href={`/product/${line.productSlug}`} className="font-medium text-gray-900 hover:text-orange-600 hover:underline line-clamp-2">
+                {line.productTitle}
+              </Link>
+              <p className="text-sm text-gray-600">{line.variantName}</p>
+              <p className="font-semibold text-gray-900 mt-1">{formatPrice(line.unitPriceCents)}</p>
+              <div className="mt-2 flex items-center gap-3 text-sm">
+                <label className="flex items-center gap-1">
+                  Qty:
+                  <select
+                    value={line.quantity}
+                    onChange={(e) => updateQuantity(line.variantId, Number(e.target.value))}
+                    disabled={isPending}
+                    className="rounded border border-gray-300 px-1.5 py-0.5"
+                  >
+                    {Array.from({ length: Math.min(10, line.stock) }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  onClick={() => removeItem(line.variantId)}
+                  disabled={isPending}
+                  className="text-blue-700 hover:underline hover:text-orange-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+            <div className="text-right font-semibold text-gray-900 shrink-0">
+              {formatPrice(line.unitPriceCents * line.quantity)}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 p-4 h-fit space-y-3">
+        <p className="text-lg">
+          Subtotal ({itemCount} item{itemCount === 1 ? "" : "s"}):{" "}
+          <span className="font-bold">{formatPrice(subtotalCents)}</span>
+        </p>
+        <Link
+          href="/checkout/address"
+          className="block w-full rounded-full bg-amber-400 py-2 text-center font-medium text-gray-900 hover:bg-amber-300"
+        >
+          Proceed to checkout
+        </Link>
+      </div>
+    </div>
+  );
+}
