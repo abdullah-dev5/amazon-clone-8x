@@ -33,6 +33,7 @@ export async function recordProductView(productId: string) {
   const store = await cookies();
   store.set(RECENTLY_VIEWED_COOKIE, JSON.stringify(next), {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 90,

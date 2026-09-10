@@ -44,6 +44,7 @@ async function writeGuestCart(lines: GuestCartLine[]) {
   const store = await cookies();
   store.set(GUEST_CART_COOKIE, JSON.stringify(lines), {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,

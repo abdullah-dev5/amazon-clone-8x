@@ -3,11 +3,15 @@ import { z } from "zod";
 export const addressSchema = z.object({
   fullName: z.string().trim().min(1, "Full name is required.").max(100, "Full name is too long."),
   line1: z.string().trim().min(1, "Address line 1 is required.").max(200, "Address is too long."),
+  // Accepts undefined, null, "", or a real string — all forms a client
+  // might round-trip through this schema more than once (e.g. a value this
+  // schema already normalized to `null` coming back as input) must not be
+  // rejected just because `null` is also this schema's own output shape.
   line2: z
     .string()
     .trim()
     .max(200, "Address is too long.")
-    .optional()
+    .nullish()
     .or(z.literal(""))
     .transform((v) => (v ? v : null)),
   city: z.string().trim().min(1, "City is required.").max(100, "City name is too long."),
@@ -22,7 +26,7 @@ export const addressSchema = z.object({
     .string()
     .trim()
     .regex(/^[\d\s()+-]{7,20}$/, "Enter a valid phone number.")
-    .optional()
+    .nullish()
     .or(z.literal(""))
     .transform((v) => (v ? v : null)),
 });

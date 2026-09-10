@@ -50,6 +50,7 @@ export async function setCheckoutState(patch: Partial<CheckoutState>) {
   const store = await cookies();
   store.set(CHECKOUT_COOKIE, JSON.stringify(next), {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 2,
@@ -68,6 +69,7 @@ export async function clearCouponFromCheckoutState() {
   const store = await cookies();
   store.set(CHECKOUT_COOKIE, JSON.stringify(rest), {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 2,

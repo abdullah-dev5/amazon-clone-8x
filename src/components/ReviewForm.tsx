@@ -91,6 +91,12 @@ export function ReviewForm({
     e.preventDefault();
     setError(null);
 
+    // Only used for instant client-side feedback — the raw pre-transform
+    // values (not this parsed/transformed result) are what's actually
+    // sent, so the server does its own canonicalizing transform exactly
+    // once. Sending the already-transformed output back as input would
+    // fail re-validation: an empty title becomes `null` here, and `null`
+    // is only ever this schema's *output* shape, never a valid *input*.
     const localCheck = updateReviewSchema.safeParse({ rating, title, body });
     if (!localCheck.success) {
       setError(localCheck.error.issues[0]?.message ?? "Check your review and try again.");
@@ -98,10 +104,11 @@ export function ReviewForm({
     }
 
     setSubmitting(true);
+    const rawPayload = { rating, title, body };
     const res = await fetch(initialReview ? `/api/reviews/${initialReview.id}` : "/api/reviews", {
       method: initialReview ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(initialReview ? localCheck.data : { ...localCheck.data, productId }),
+      body: JSON.stringify(initialReview ? rawPayload : { ...rawPayload, productId }),
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {

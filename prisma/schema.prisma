@@ -38,6 +38,8 @@ model Address {
   createdAt  DateTime @default(now())
 
   orders     Order[]
+
+  @@index([userId])
 }
 
 model PaymentMethod {
@@ -76,6 +78,8 @@ model Product {
 
   variants    ProductVariant[]
   reviews     Review[]
+
+  @@index([categoryId])
 }
 
 model ProductVariant {
@@ -93,6 +97,8 @@ model ProductVariant {
   cartItems        CartItem[]
   wishlistItems    WishlistItem[]
   orderItems       OrderItem[]
+
+  @@index([productId])
 }
 
 model Review {
@@ -133,6 +139,7 @@ model CartItem {
   createdAt DateTime       @default(now())
 
   @@unique([cartId, variantId])
+  @@index([variantId])
 }
 
 model Wishlist {
@@ -151,6 +158,7 @@ model WishlistItem {
   createdAt  DateTime       @default(now())
 
   @@unique([wishlistId, variantId])
+  @@index([variantId])
 }
 
 // A real, persisted fulfillment lifecycle: PLACED -> PROCESSING -> SHIPPED
@@ -227,6 +235,8 @@ model Order {
 
   items          OrderItem[]
   placedAt       DateTime    @default(now())
+
+  @@index([userId])
 }
 
 model OrderItem {
@@ -242,4 +252,6 @@ model OrderItem {
   imageUrl     String?
   unitPriceCents Int
   quantity     Int
+
+  @@index([orderId])
 }

@@ -15,12 +15,15 @@ export async function Header() {
   ]);
   const cart = await getCartView(userId);
 
+  // Never a fixed placeholder city — reflects the signed-in user's actual
+  // default address, or an honest "not set yet" prompt for everyone else
+  // (guests, or a signed-in user with no saved address).
   const defaultAddress = userId
     ? await db.address.findFirst({ where: { userId, isDefault: true } })
     : null;
   const deliverToLabel = defaultAddress
     ? `${defaultAddress.city} ${defaultAddress.postalCode}`
-    : "Seattle 98109";
+    : "Select address";
 
   return (
     <header className="sticky top-0 z-30">

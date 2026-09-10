@@ -14,6 +14,14 @@ import { withApiErrorLogging } from "@/lib/api-error";
 export const POST = withApiErrorLogging(
   "POST /api/orders/[orderId]/advance",
   async (_req: Request, { params }: { params: Promise<{ orderId: string }> }) => {
+    // The UI trigger for this is already hidden outside development (see
+    // the order detail page), but that alone doesn't stop a direct call —
+    // enforce it here too. 404, not 403, so the endpoint's existence isn't
+    // revealed to a production caller either.
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    }
+
     const user = await requireUser().catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 

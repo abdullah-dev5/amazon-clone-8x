@@ -3,10 +3,6 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-function img(seed: string, w = 600, h = 600) {
-  return `https://picsum.photos/seed/${seed}/${w}/${h}`;
-}
-
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -24,6 +20,13 @@ type VariantSeed = {
 type ProductSeed = {
   title: string;
   brand: string;
+  // A real, category-relevant photo pulled from a public API (DummyJSON's
+  // product catalog, Open Library's book covers, or Wikipedia's pageimages
+  // API depending on what best matched this fictional product) — never a
+  // random stock photo. Reused as-is for every variant and every thumbnail
+  // slot, since none of these sources know about this catalog's invented
+  // color/size variants — see the seeding loop below.
+  imageUrl: string;
   description: string;
   variants: VariantSeed[];
   reviews: { authorName: string; rating: number; title?: string; body: string }[];
@@ -35,6 +38,20 @@ type CategorySeed = {
   products: ProductSeed[];
 };
 
+// One real, representative photo per category tile — same sourcing rule
+// as ProductSeed.imageUrl above.
+const CATEGORY_IMAGES: Record<string, string> = {
+  electronics: "https://cdn.dummyjson.com/product-images/smartphones/iphone-5s/1.webp",
+  "home-kitchen": "https://cdn.dummyjson.com/product-images/kitchen-accessories/pan/1.webp",
+  // Reuses one of the actual book covers below rather than a separate host.
+  books: "https://covers.openlibrary.org/b/id/9697809-L.jpg",
+  fashion: "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/1.webp",
+  "sports-outdoors":
+    "https://cdn.dummyjson.com/product-images/sports-accessories/basketball/1.webp",
+  beauty: "https://cdn.dummyjson.com/product-images/skin-care/olay-ultra-moisture-shea-butter-body-wash/1.webp",
+  "toys-games": "https://cdn.dummyjson.com/product-images/home-decoration/plant-pot/1.webp",
+};
+
 const catalog: CategorySeed[] = [
   {
     slug: "electronics",
@@ -43,6 +60,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Noise-Cancelling Over-Ear Headphones",
         brand: "Audiora",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods-max-silver/1.webp",
         description:
           "Wireless over-ear headphones with active noise cancellation, 30-hour battery life, and plush memory-foam ear cups for all-day comfort.",
         variants: [
@@ -59,6 +77,7 @@ const catalog: CategorySeed[] = [
       {
         title: "65W USB-C Fast Charger with 2 Ports",
         brand: "VoltEdge",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-iphone-charger/1.webp",
         description:
           "Compact GaN charger delivering 65W total output across two USB-C ports, fast enough to charge a laptop and phone simultaneously.",
         variants: [
@@ -72,6 +91,7 @@ const catalog: CategorySeed[] = [
       {
         title: "4K Ultra HD Smart Monitor, 27-inch",
         brand: "Clearview",
+        imageUrl: "https://cdn.dummyjson.com/product-images/laptops/new-dell-xps-13-9300-laptop/1.webp",
         description:
           "27-inch 4K IPS monitor with HDR10, 99% sRGB color accuracy, built-in speakers, and USB-C connectivity with 65W power delivery.",
         variants: [
@@ -86,6 +106,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Mechanical Keyboard, Hot-Swappable Switches",
         brand: "KeyForge",
+        imageUrl: "https://cdn.dummyjson.com/product-images/laptops/asus-zenbook-pro-dual-screen-laptop/1.webp",
         description:
           "75% layout mechanical keyboard with hot-swappable switches, PBT keycaps, and per-key RGB backlighting. Wired and Bluetooth modes.",
         variants: [
@@ -101,6 +122,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Portable Bluetooth Speaker, Waterproof",
         brand: "Audiora",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-homepod-mini-cosmic-grey/1.webp",
         description:
           "IP67 waterproof portable speaker with 24-hour battery, deep bass, and pairing for two speakers in stereo mode.",
         variants: [
@@ -116,6 +138,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Fitness Tracker with Heart Rate & GPS",
         brand: "Pulseware",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-watch-series-4-gold/1.webp",
         description:
           "Slim fitness band with built-in GPS, continuous heart-rate tracking, sleep scoring, and 10-day battery life.",
         variants: [
@@ -130,6 +153,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Wireless Charging Stand, 15W",
         brand: "VoltEdge",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpower-wireless-charger/1.webp",
         description:
           "Adjustable-angle 15W wireless charging stand compatible with most Qi-enabled phones, with a status LED and non-slip base.",
         variants: [
@@ -142,6 +166,7 @@ const catalog: CategorySeed[] = [
       {
         title: "1TB Portable SSD, USB-C",
         brand: "Clearview",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-magsafe-battery-pack/1.webp",
         description:
           "Pocket-sized 1TB solid-state drive with read speeds up to 1050MB/s, shock-resistant aluminum housing, and USB-C cable included.",
         variants: [
@@ -162,6 +187,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Stainless Steel French Press, 34oz",
         brand: "Brewline",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/silver-pot-with-glass-cap/1.webp",
         description:
           "Double-wall insulated stainless steel French press that keeps coffee hot for hours, with a fine mesh filter to reduce sediment.",
         variants: [
@@ -176,6 +202,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Non-Stick Ceramic Cookware Set, 10-Piece",
         brand: "Hearthcraft",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/pan/1.webp",
         description:
           "10-piece ceramic non-stick cookware set including frying pans, saucepans, and a stockpot, all oven-safe up to 450°F.",
         variants: [
@@ -189,6 +216,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Robot Vacuum with Mapping",
         brand: "Sweepix",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/electric-stove/1.webp",
         description:
           "Self-charging robot vacuum with LiDAR room mapping, app-controlled zone cleaning, and a self-emptying base with 60-day capacity.",
         variants: [
@@ -203,6 +231,7 @@ const catalog: CategorySeed[] = [
       {
         title: "6-Quart Programmable Slow Cooker",
         brand: "Hearthcraft",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/1.webp",
         description:
           "6-quart slow cooker with programmable timer, three heat settings, and a locking lid for easy transport to potlucks.",
         variants: [
@@ -216,6 +245,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Memory Foam Bath Mat, Extra Soft",
         brand: "Nestwell",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/tray/1.webp",
         description:
           "Ultra-plush memory foam bath mat with a non-slip backing and quick-dry surface, machine washable.",
         variants: [
@@ -231,6 +261,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Digital Air Fryer, 6-Quart",
         brand: "Sweepix",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/microwave-oven/1.webp",
         description:
           "6-quart digital air fryer with 8 presets, a dishwasher-safe basket, and rapid hot-air circulation for crispy results with little oil.",
         variants: [
@@ -244,6 +275,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Bamboo Cutting Board Set, 3-Piece",
         brand: "Nestwell",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/chopping-board/1.webp",
         description:
           "Set of three organic bamboo cutting boards in graduated sizes, with juice grooves and built-in handles for easy storage.",
         variants: [
@@ -256,6 +288,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Adjustable Standing Desk Converter",
         brand: "Deskline",
+        imageUrl: "https://cdn.dummyjson.com/product-images/furniture/bedside-table-african-cherry/1.webp",
         description:
           "Spring-assisted standing desk converter with a spacious keyboard tray, smooth height adjustment, and dual monitor support.",
         variants: [
@@ -276,6 +309,7 @@ const catalog: CategorySeed[] = [
       {
         title: "The Midnight Cartographer",
         brand: "Harlow & Vine Press",
+        imageUrl: "https://covers.openlibrary.org/b/id/13699667-L.jpg",
         description:
           "A sweeping literary mystery about a mapmaker who discovers her latest commission traces the route of a disappearance decades old.",
         variants: [
@@ -291,6 +325,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Deep Work Habits: A Practical Guide",
         brand: "Anchor Point Books",
+        imageUrl: "https://covers.openlibrary.org/b/id/7988607-L.jpg",
         description:
           "A pragmatic, research-backed guide to building focus habits in a distraction-saturated world, with weekly exercises.",
         variants: [
@@ -305,6 +340,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Atlas of Forgotten Coastlines",
         brand: "Harlow & Vine Press",
+        imageUrl: "https://covers.openlibrary.org/b/id/9697809-L.jpg",
         description:
           "A richly illustrated collection of essays on vanished coastal towns, paired with hand-drawn historical maps.",
         variants: [
@@ -317,6 +353,7 @@ const catalog: CategorySeed[] = [
       {
         title: "The Quiet Algorithm",
         brand: "Northfall Publishing",
+        imageUrl: "https://covers.openlibrary.org/b/id/11847852-L.jpg",
         description:
           "A near-future thriller following an engineer who discovers her company's recommendation engine is quietly rewriting elections.",
         variants: [
@@ -331,6 +368,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Small Kitchen, Big Flavor",
         brand: "Anchor Point Books",
+        imageUrl: "https://covers.openlibrary.org/b/id/4098526-L.jpg",
         description:
           "A cookbook built around one-pan and one-pot meals for tiny kitchens, with 90 recipes and swap suggestions for common allergens.",
         variants: [
@@ -344,6 +382,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Children of the Long Winter",
         brand: "Northfall Publishing",
+        imageUrl: "https://covers.openlibrary.org/b/id/8769648-L.jpg",
         description:
           "Book one of an epic fantasy trilogy set in a world where the seasons last a generation each.",
         variants: [
@@ -365,6 +404,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Classic Fit Oxford Button-Down Shirt",
         brand: "Harbor & Finch",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/1.webp",
         description:
           "100% cotton oxford shirt with a classic fit, button-down collar, and reinforced stitching for everyday wear.",
         variants: [
@@ -381,6 +421,7 @@ const catalog: CategorySeed[] = [
       {
         title: "High-Waisted Running Leggings",
         brand: "Pace & Grain",
+        imageUrl: "https://cdn.dummyjson.com/product-images/tops/blue-frock/1.webp",
         description:
           "Squat-proof high-waisted leggings with a hidden waistband pocket, four-way stretch fabric, and flatlock seams.",
         variants: [
@@ -397,6 +438,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Leather Minimalist Wallet",
         brand: "Harbor & Finch",
+        imageUrl: "https://cdn.dummyjson.com/product-images/womens-bags/women-handbag-black/1.webp",
         description:
           "Slim genuine-leather wallet with RFID-blocking lining, six card slots, and a discreet cash pocket.",
         variants: [
@@ -410,6 +452,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Waterproof Hiking Boots",
         brand: "Summit Trail",
+        imageUrl: "https://cdn.dummyjson.com/product-images/mens-shoes/nike-baseball-cleats/1.webp",
         description:
           "Mid-cut waterproof hiking boots with an aggressive rubber outsole, cushioned midsole, and breathable membrane lining.",
         variants: [
@@ -426,6 +469,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Sterling Silver Pendant Necklace",
         brand: "Wren & Co.",
+        imageUrl: "https://cdn.dummyjson.com/product-images/womens-jewellery/green-crystal-earring/1.webp",
         description:
           "Handcrafted sterling silver pendant on an 18-inch adjustable chain, tarnish-resistant coating, comes in a gift box.",
         variants: [
@@ -439,6 +483,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Merino Wool Crew Socks, 3-Pack",
         brand: "Summit Trail",
+        imageUrl: "https://cdn.dummyjson.com/product-images/tops/gray-dress/1.webp",
         description:
           "Cushioned merino wool blend crew socks, naturally odor-resistant and temperature-regulating for all-day wear.",
         variants: [
@@ -458,6 +503,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Adjustable Dumbbell Set, 5-52.5 lbs",
         brand: "Ironloop",
+        imageUrl: "https://cdn.dummyjson.com/product-images/sports-accessories/iron-golf/1.webp",
         description:
           "Space-saving adjustable dumbbells that replace 15 sets of weights, adjustable in 2.5lb increments via a dial.",
         variants: [
@@ -471,6 +517,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Insulated Stainless Steel Water Bottle, 32oz",
         brand: "Trailpeak",
+        imageUrl: "https://cdn.dummyjson.com/product-images/kitchen-accessories/black-aluminium-cup/1.webp",
         description:
           "Double-wall vacuum insulated bottle that keeps drinks cold for 24 hours or hot for 12, with a leak-proof flip lid.",
         variants: [
@@ -485,6 +532,7 @@ const catalog: CategorySeed[] = [
       {
         title: "2-Person Backpacking Tent, 3-Season",
         brand: "Trailpeak",
+        imageUrl: "https://cdn.dummyjson.com/product-images/sports-accessories/football/1.webp",
         description:
           "Ultralight 2-person tent with a freestanding aluminum pole structure, double-wall design, and a 3-minute setup.",
         variants: [
@@ -498,6 +546,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Yoga Mat, Extra Thick Non-Slip",
         brand: "Ironloop",
+        imageUrl: "https://cdn.dummyjson.com/product-images/sports-accessories/tennis-racket/1.webp",
         description:
           "6mm extra-thick yoga mat with a textured non-slip surface on both sides and a carrying strap included.",
         variants: [
@@ -512,6 +561,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Folding Camping Chair with Cup Holder",
         brand: "Trailpeak",
+        imageUrl: "https://cdn.dummyjson.com/product-images/furniture/knoll-saarinen-executive-conference-chair/1.webp",
         description:
           "Lightweight folding camp chair with a padded seat, side cup holder, and a compact carry bag, rated to 300 lbs.",
         variants: [
@@ -525,6 +575,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Bike Repair Tool Kit, 16-in-1",
         brand: "Ironloop",
+        imageUrl: "https://cdn.dummyjson.com/product-images/sports-accessories/metal-baseball-bat/1.webp",
         description:
           "Compact multi-tool with 16 functions for on-the-go bike repairs, including tire levers and a chain breaker, in a zip case.",
         variants: [
@@ -543,6 +594,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Vitamin C Brightening Serum",
         brand: "Lumeglow",
+        imageUrl: "https://cdn.dummyjson.com/product-images/skin-care/olay-ultra-moisture-shea-butter-body-wash/1.webp",
         description:
           "20% vitamin C serum with ferulic acid and vitamin E, formulated to brighten skin tone and reduce the look of fine lines.",
         variants: [
@@ -557,6 +609,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Electric Sonic Toothbrush with Travel Case",
         brand: "Brightline",
+        imageUrl: "https://cdn.dummyjson.com/product-images/beauty/powder-canister/1.webp",
         description:
           "Rechargeable sonic toothbrush with 5 cleaning modes, a 2-minute smart timer, and a magnetic charging travel case.",
         variants: [
@@ -570,6 +623,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Argan Oil Hair Mask, Deep Conditioning",
         brand: "Lumeglow",
+        imageUrl: "https://cdn.dummyjson.com/product-images/skin-care/vaseline-men-body-and-face-lotion/1.webp",
         description:
           "Weekly deep-conditioning hair mask with argan oil and shea butter to repair dry, damaged, or color-treated hair.",
         variants: [
@@ -583,6 +637,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Mineral Sunscreen SPF 50, Reef Safe",
         brand: "Brightline",
+        imageUrl: "https://cdn.dummyjson.com/product-images/skin-care/attitude-super-leaves-hand-soap/1.webp",
         description:
           "Broad-spectrum mineral sunscreen with zinc oxide, water-resistant for 80 minutes, and reef-safe with no white cast.",
         variants: [
@@ -596,6 +651,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Bamboo Safety Razor with 10 Blades",
         brand: "Brightline",
+        imageUrl: "https://cdn.dummyjson.com/product-images/beauty/red-lipstick/1.webp",
         description:
           "Sustainable bamboo-handle safety razor with a stainless steel head and 10 replacement blades included.",
         variants: [
@@ -614,6 +670,7 @@ const catalog: CategorySeed[] = [
       {
         title: "1000-Piece Jigsaw Puzzle, Mountain Vista",
         brand: "Puzzlecraft",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Jigsaw_puzzle_01_by_Scouten.jpg/960px-Jigsaw_puzzle_01_by_Scouten.jpg",
         description:
           "1000-piece jigsaw puzzle featuring a hand-illustrated mountain vista, printed on premium thick cardboard with a linen finish.",
         variants: [
@@ -626,6 +683,7 @@ const catalog: CategorySeed[] = [
       {
         title: "Wooden Building Block Set, 120 Pieces",
         brand: "Timberjoy",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/2/22/Toyblocks.JPG",
         description:
           "120-piece natural wood building block set in varied shapes, sanded smooth and finished with non-toxic paint, for ages 3+.",
         variants: [
@@ -638,6 +696,8 @@ const catalog: CategorySeed[] = [
       {
         title: "Strategy Board Game: Settlers of Kaldara",
         brand: "Puzzlecraft",
+        imageUrl:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/US_Navy_110713-N-NT881-124_Personnel_Specialist_2nd_Class_James_Vail%2C_left%2C_and_Boatswain%27s_Mate_2nd_Class_Nathaniel_Eaton_play_board_games_with_ch.jpg/960px-US_Navy_110713-N-NT881-124_Personnel_Specialist_2nd_Class_James_Vail%2C_left%2C_and_Boatswain%27s_Mate_2nd_Class_Nathaniel_Eaton_play_board_games_with_ch.jpg",
         description:
           "A resource-trading strategy board game for 3-5 players, roughly 90 minutes per game, with expansion-ready components.",
         variants: [
@@ -651,6 +711,8 @@ const catalog: CategorySeed[] = [
       {
         title: "Remote Control Stunt Car",
         brand: "Timberjoy",
+        imageUrl:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Zero_Rally_2011_%285809996478%29.jpg/960px-Zero_Rally_2011_%285809996478%29.jpg",
         description:
           "All-terrain RC stunt car with 360-degree flips, dual-mode wheels for wall driving, and a 40-minute battery life.",
         variants: [
@@ -664,6 +726,8 @@ const catalog: CategorySeed[] = [
       {
         title: "Modeling Clay Kit, 24 Colors",
         brand: "Timberjoy",
+        imageUrl:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Little_girl_holding_plasticine._%2849810941302%29.jpg/960px-Little_girl_holding_plasticine._%2849810941302%29.jpg",
         description:
           "24-color non-toxic modeling clay kit with sculpting tools and a reusable storage case, air-dry and oven-bake options.",
         variants: [
@@ -700,13 +764,16 @@ async function main() {
       data: {
         slug: cat.slug,
         name: cat.name,
-        imageUrl: img(`cat-${cat.slug}`, 400, 300),
+        imageUrl: CATEGORY_IMAGES[cat.slug],
       },
     });
 
     for (const p of cat.products) {
       const slug = slugify(`${p.brand}-${p.title}`);
-      const images = [img(`${slug}-1`), img(`${slug}-2`), img(`${slug}-3`)];
+      // A single real photo (see ProductSeed.imageUrl) rather than 3
+      // distinct random ones — showing the one real, accurate photo is more
+      // honest than padding the gallery with unrelated stock photography.
+      const images = [p.imageUrl];
       const avgRating =
         p.reviews.reduce((sum, r) => sum + r.rating, 0) / p.reviews.length;
 
@@ -733,7 +800,7 @@ async function main() {
             priceCents: v.priceCents,
             compareAtCents: v.compareAtCents,
             stock: v.stock,
-            imageUrl: img(`${slug}-${slugify(v.name)}`),
+            imageUrl: p.imageUrl,
             isDefault: i === 0,
           },
         });
@@ -766,11 +833,11 @@ async function main() {
     data: {
       userId: demoUser.id,
       fullName: "Demo Shopper",
-      line1: "500 Amazon Way",
+      line1: "500 Market Street",
       line2: "Apt 12",
-      city: "Seattle",
-      state: "WA",
-      postalCode: "98109",
+      city: "Portland",
+      state: "OR",
+      postalCode: "97201",
       country: "US",
       phone: "555-010-1234",
       isDefault: true,
