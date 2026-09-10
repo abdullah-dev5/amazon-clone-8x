@@ -1,6 +1,6 @@
 # Progress vs. Plan
 
-Status as of commit `f81420e` (2026-09-10). Compares actual state against
+Status as of commit `d6a487a` (2026-09-10). Compares actual state against
 `PLAN.md`. Updated at milestones, not line-by-line with every commit — see
 `git log` for the authoritative, incremental history.
 
@@ -8,7 +8,10 @@ Status as of commit `f81420e` (2026-09-10). Compares actual state against
 
 **The full P0 golden path is implemented, QA-regressed, and passing an
 automated end-to-end test.** Most of P1 is also done. Nothing in P2 has been
-built (as intended — it was explicitly deprioritized).
+built (as intended — it was explicitly deprioritized). A subsequent
+hardening pass addressed idempotency, stock integrity, and race conditions
+across order placement, cart mutations, signup, and address defaults — see
+"Correctness/idempotency/security hardening" below.
 
 ## Commit history
 
@@ -23,7 +26,56 @@ aec9867  Complete the P0 buy spine: cart, auth, and 4-step checkout
 d29c2b5  Add wishlist, address book management, and account home (P1)
 f81420e  Release QA checkpoint: fix mobile header defect + form label a11y,
          add Playwright golden-path test
+2a3cc18  Add PLAN.md and PROGRESS.md documenting milestones and current status
+d6a487a  Harden correctness, idempotency, and security per revised priority order
 ```
+
+## Correctness / idempotency / security hardening
+
+Following a revised priority order (core journey > correctness/integrity >
+security > idempotency > engineering quality > UI/UX > testing >
+deployment), a dedicated pass addressed several real gaps found by asking,
+for each state-changing operation, "what happens if this is submitted
+twice, or retried after the server processed it but the client didn't see
+the response?":
+
+- **Order placement is now atomic and idempotent.** Previously
+  `place-order` did cart-read → order-create → cart-clear as separate,
+  non-transactional steps with no protection against a double-click or
+  retry creating two orders. Fixed with an `Order.idempotencyKey` (unique,
+  derived from a per-checkout-session id generated once in
+  `lib/checkout.ts` and stable across retries within that session) plus a
+  `db.$transaction` wrapping stock re-validation, stock decrement, order +
+  items creation, and cart-clear together. Verified under real concurrency:
+  two literally-parallel requests both return the same order id, exactly
+  one `Order` row is created, and stock is decremented exactly once.
+- **Stock was never decremented on purchase** (an oversell bug) and was
+  only enforced client-side (the quantity `<select>`'s cap) on add-to-cart,
+  never server-side. Both are now fixed: purchase decrements stock inside
+  the same transaction as order creation (rolling back the whole order,
+  verified, if stock dropped below the cart's quantity in the meantime),
+  and every cart-mutation path clamps against live stock server-side,
+  reporting back to the UI when it had to.
+- **Two more of the same class of bug, found by the same question, fixed
+  the same way:** concurrent signups with the same email could both pass
+  the pre-check and then hit an uncaught unique-constraint error (500) —
+  now transactional with a caught, friendly 409. Concurrent "set address as
+  default" requests could leave two addresses marked default — now
+  transactional at all three call sites that touch it.
+- **Rate limiting added** (`lib/rate-limit.ts`, in-memory — no Redis, matches
+  the current single-process scope) on sign-in (10/15min, keyed by email —
+  blocks brute-forcing a specific account) and sign-up (20/hour, keyed by
+  IP, only once a real IP is available so it doesn't collapse local
+  dev/test traffic into one bucket).
+- **Optimistic UI updates without rollback** in `CartList`, `AddressBook`,
+  and `WishlistList` could leave the UI showing a state the server never
+  reached, if a mutation failed. All three now snapshot before mutating,
+  roll back and surface an inline error on failure.
+
+Re-verified after every change: `tsc --noEmit` clean, the golden-path
+Playwright test passing, and zero unexpected server errors across an
+extensive manual regression (concurrent order placement, simulated
+stock-depletion race, rate-limit triggering/scoping, concurrent signup).
 
 ## P0 — status: DONE
 
@@ -123,14 +175,22 @@ check). Zero server errors were logged across the entire QA session.
 
 ## What's left (not started)
 
-- Live deployment (explicitly deferred — local-only was confirmed as
-  sufficient for now; note SQLite's file-based DB wouldn't survive
-  Vercel's serverless filesystem as-is, so a deploy would need a hosted DB
-  swap first).
+- Live deployment and hosted DB migration (explicitly deferred until the
+  final phase per current instructions — local SQLite is acceptable for
+  now; note it wouldn't survive Vercel's serverless filesystem as-is, so a
+  real deploy needs a hosted DB swap first, deliberately not started).
 - Related/recommended products on the PDP (P1, not done).
+- Saved payment methods — still intentionally not built (see Deviations):
+  no full card number is ever persisted, which is fundamentally at odds
+  with a "saved cards" feature as originally scoped.
 - Broader Playwright coverage beyond the one golden-path test (deliberately
   kept small per instructions — "avoid building a large E2E test suite at
-  this stage").
+  this stage"); the idempotency/race-condition fixes were verified manually
+  (documented in git commit `d6a487a`) rather than via new automated tests.
+- Structured request validation (e.g. zod) — API routes currently validate
+  manually per-field; functional and exercised extensively, but a schema
+  library would reduce repetition and the chance of a missed check as more
+  routes are added.
 - `npm audit` reports 3 high-severity advisories, all in Prisma's optional
   MySQL driver support (`mysql2`) and a transitive `deepmerge-ts`
   dependency — not reachable code paths for this app (SQLite-only), left
